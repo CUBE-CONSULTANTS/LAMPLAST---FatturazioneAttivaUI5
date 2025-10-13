@@ -1,0 +1,13 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:codeeditor="sap.ui.codeeditor">
+
+    <codeeditor:CodeEditor
+        id="xmlEditor"
+        type="xml"
+        height="100%"
+        width="100%"
+        editable="false"
+        value="" />
+</core:FragmentDefinition>

@@ -1,0 +1,259 @@
+<mvc:View
+    controllerName="com.zeim.fatturazioneattiva.controller.Home"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:f="sap.f"
+    xmlns:card="sap.f.cards"
+    xmlns:form="sap.ui.layout.form"
+    xmlns:mdc="sap.ui.mdc"
+    xmlns:smartFilterBar="sap.ui.comp.smartfilterbar"
+>
+    <Page
+        id="page"
+        title="{i18n>title}"
+    >
+        <!-- <Panel headerText="Directory di selezione file XML" width="100%">
+    <HBox>
+    <RadioButton
+        id="rbLocale"
+        text="Cartella locale"
+        groupName="cartella"
+        select=".onCartellaChange"
+        selected="true"
+        class="sapUiSmallMarginEnd"/>
+
+    <HBox class="sapUiSmallMarginEnd" alignItems="Center">
+        <RadioButton
+            id="rbServer"
+            text="Cartella su Server"
+            groupName="cartella"
+            select=".onCartellaChange"/>
+        <Input
+            id="idPercorsoInput"
+            placeholder="Inserisci percorso"
+            width="200px"
+            enabled="false"
+            class="sapUiSmallMarginBegin"/>
+    </HBox>
+
+    <RadioButton
+        id="rbApi"
+        text="API"
+        groupName="cartella"
+        select=".onCartellaChange"
+        class="sapUiSmallMarginBegin"/>
+</HBox>
+
+</Panel> -->
+
+        <!-- Selettore Flusso -->
+        <Panel>
+            <FlexBox
+                alignItems="Start"
+                justifyContent="Center"
+            >
+                <SegmentedButton
+                    id="idSegmentedBtn"
+                    selectionChange=".onSegmentChange"
+                    selectedKey="sd"
+                >
+                    <items>
+                        <SegmentedButtonItem
+                            key="sd"
+                            text="Flusso Fatture SD"
+                            width="auto"
+                        />
+                        <SegmentedButtonItem
+                            key="fi"
+                            text="Flusso Fatture FI"
+                            width="auto"
+                        />
+                    </items>
+                </SegmentedButton>
+            </FlexBox>
+        </Panel>
+        <Panel>
+            <VBox>
+                <mdc:FilterBar
+                    id="filterBar"
+                    showGoButton="true"
+                    search=".onSearch"
+                >
+            <!-- Gestiti da controller -->
+                </mdc:FilterBar>
+            </VBox>
+        </Panel>
+        <Panel
+            headerText="Elenco Fatture"
+            width="100%"
+        >
+            <IconTabBar
+                id="idIconTabBar"
+                select=".onIconTabSelect"
+                expandable="false"
+                expanded="false"
+            >
+                <items>
+                    <IconTabFilter
+                        showAll="true"
+                        count="{fattureModel>/Counts/All}"
+                        text="Fatture"
+                        key="All"
+                    />
+                    <IconTabSeparator />
+                    <IconTabFilter
+                        key="processed"
+                        iconColor="Positive"
+                        text="Processati"
+                        icon="sap-icon://accept"
+                        count="{fattureModel>/Counts/Processed}"
+                    />
+                    <IconTabFilter
+                        key="working"
+                        iconColor="Critical"
+                        text="Da processare"
+                        icon="sap-icon://pending"
+                        count="{fattureModel>/Counts/Working}"
+                    />
+                    <IconTabFilter
+                        key="error"
+                        iconColor="Negative"
+                        text="In errore"
+                        icon="sap-icon://error"
+                        count="{fattureModel>/Counts/Error}"
+                    />
+                </items>
+            </IconTabBar>
+            <Table
+                id="idTableFatture"
+                inset="false"
+                mode="MultiSelect"
+                items="{fattureModel>/Fatture}"
+                selectionChange=".onSelectionChange"
+            >
+                <columns>
+                    <Column>
+                        <Text text="Società" />
+                    </Column>
+                    <Column>
+                        <Text text="Cliente" />
+                    </Column>
+                    <Column>
+                        <Text text="Nominativo" />
+                    </Column>
+                    <Column>
+                        <Text text="P.IVA" />
+                    </Column>
+                    <Column>
+                        <Text text="C.F." />
+                    </Column>
+                    <Column>
+                        <Text text="Tipo Fattura" />
+                    </Column>
+                    <Column>
+                        <Text text="Definizione" />
+                    </Column>
+                    <Column>
+                        <Text text="Doc Fatt" />
+                    </Column>
+                    <Column>
+                        <Text text="N° Doc" />
+                    </Column>
+                    <Column>
+                        <Text text="Data Registrazione" />
+                    </Column>
+                    <Column>
+                        <Text text="Esercizio" />
+                    </Column>
+                    <Column hAlign="End">
+                        <Text text="Tot Fattura" />
+                    </Column>
+                    <Column>
+                        <Text text="CD Univoco" />
+                    </Column>
+                    <Column>
+                        <Text text="PEC" />
+                    </Column>
+                    <Column>
+                        <Text text="LOG" />
+                    </Column>
+                    <Column>
+                        <Text text="Tipologia errore" />
+                    </Column>
+                    <Column>
+                        <Text text="Azioni" />
+                    </Column>
+                </columns>
+
+                <items>
+                    <ColumnListItem>
+                        <cells>
+                            <Text text="{fattureModel>Societa}" />
+                            <Link
+                                text="{fattureModel>Cliente}"
+                                press=".onNavToCliente"
+                            />
+                            <Text text="{fattureModel>Nominativo}" />
+                            <Text text="{fattureModel>PIVA}" />
+                            <Text text="{fattureModel>CF}" />
+                            <Text text="{fattureModel>TipoFattura}" />
+                            <Text text="{fattureModel>Definizione}" />
+                            <Text text="{fattureModel>DocFatt}" />
+                            <Link
+                                text="{fattureModel>NumeroDoc}"
+                                press=".onNavToDocumento"
+                            />
+                            <Text text="{fattureModel>DataRegistrazione}" />
+                            <Text text="{fattureModel>Esercizio}" />
+                            <ObjectNumber
+                                number="{fattureModel>TotFattura}"
+                                unit="EUR"
+                            />
+                            <Text text="{fattureModel>CDUnivoco}" />
+                            <Text text="{fattureModel>PEC}" />
+                            <ObjectStatus
+                                text="{fattureModel>LogText}"
+                                icon="{fattureModel>LogIcon}"
+                                state="{fattureModel>LogState}"
+                            />
+                            <Text text="{fattureModel>TipologiaErrore}" />
+                            <HBox>
+                                <Button
+                                    icon="sap-icon://show"
+                                    type="Transparent"
+                                    press=".onViewXML"
+                                />
+                                <Button
+                                    text="Visualizza Fattura"
+                                    type="Transparent"
+                                    press=".onShowAdvancedPDFDialog"
+                                />
+                            </HBox>
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </Panel>
+
+        <footer>
+            <OverflowToolbar>
+                <ToolbarSpacer />
+                <Button
+                    id="btnCreateXML"
+                    type="Emphasized"
+                    enabled="false"
+                    text="Crea File XML"
+                    press=".onCreateXML"
+                />
+                <Button
+                    id="btnInviaIntermediario"
+                    type="Accept"
+                    enabled="false"
+                    icon="sap-icon://paper-plane"
+                    text="Invia al intermediario"
+                    press=".onInvioData"
+                />
+            </OverflowToolbar>
+        </footer>
+    </Page>
+</mvc:View>
