@@ -132,55 +132,55 @@
                 selectionChange=".onSelectionChange"
             >
                 <columns>
-                    <Column>
+                    <Column width="3rem">
                         <Text text="Società" />
                     </Column>
-                    <Column>
+                    <Column width="4rem">
                         <Text text="Cliente" />
                     </Column>
-                    <Column>
+                    <Column width="5rem">
                         <Text text="Nominativo" />
                     </Column>
-                    <Column>
+                    <Column width="6rem">
                         <Text text="P.IVA" />
                     </Column>
-                    <Column>
+                    <Column width="6rem">
                         <Text text="C.F." />
                     </Column>
-                    <Column>
+                    <!-- <Column>
                         <Text text="Tipo Fattura" />
-                    </Column>
-                    <Column>
+                    </Column> -->
+                    <Column width="6rem">
                         <Text text="Definizione" />
                     </Column>
-                    <Column>
+                    <Column width="4rem">
                         <Text text="Doc Fatt" />
                     </Column>
-                    <Column>
+                    <Column width="4rem">
                         <Text text="N° Doc" />
                     </Column>
-                    <Column>
+                    <Column width="6rem">
                         <Text text="Data Registrazione" />
                     </Column>
-                    <Column>
+                    <Column width="5rem"> 
                         <Text text="Esercizio" />
                     </Column>
-                    <Column hAlign="End">
+                    <Column width="6rem">
                         <Text text="Tot Fattura" />
                     </Column>
-                    <Column>
+                    <Column width="5rem">
                         <Text text="CD Univoco" />
                     </Column>
-                    <Column>
+                    <Column width="4rem">    
                         <Text text="PEC" />
                     </Column>
-                    <Column>
-                        <Text text="LOG" />
+                    <Column width="6rem">
+                        <Text text="Esito" />
                     </Column>
-                    <Column>
-                        <Text text="Tipologia errore" />
+                    <Column width="7rem">
+                        <Text text="Messaggio" />
                     </Column>
-                    <Column>
+                    <Column width="8rem">
                         <Text text="Azioni" />
                     </Column>
                 </columns>
@@ -196,7 +196,7 @@
                             <Text text="{fattureModel>Nominativo}" />
                             <Text text="{fattureModel>PIVA}" />
                             <Text text="{fattureModel>CF}" />
-                            <Text text="{fattureModel>TipoFattura}" />
+                            <!-- <Text text="{fattureModel>TipoFattura}" /> -->
                             <Text text="{fattureModel>Definizione}" />
                             <Text text="{fattureModel>DocFatt}" />
                             <Link
