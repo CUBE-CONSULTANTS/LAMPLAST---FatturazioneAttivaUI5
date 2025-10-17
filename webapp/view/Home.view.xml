@@ -2,51 +2,17 @@
     controllerName="com.zeim.fatturazioneattiva.controller.Home"
     xmlns:mvc="sap.ui.core.mvc"
     xmlns="sap.m"
+    xmlns:core="sap.ui.core"
     xmlns:f="sap.f"
     xmlns:card="sap.f.cards"
     xmlns:form="sap.ui.layout.form"
-    xmlns:mdc="sap.ui.mdc"
-    xmlns:smartFilterBar="sap.ui.comp.smartfilterbar"
+    xmlns:fb="sap.ui.comp.filterbar"
+    xmlns:vh="sap.ui.comp.valuehelpdialog"
 >
     <Page
         id="page"
         title="{i18n>title}"
     >
-        <!-- <Panel headerText="Directory di selezione file XML" width="100%">
-    <HBox>
-    <RadioButton
-        id="rbLocale"
-        text="Cartella locale"
-        groupName="cartella"
-        select=".onCartellaChange"
-        selected="true"
-        class="sapUiSmallMarginEnd"/>
-
-    <HBox class="sapUiSmallMarginEnd" alignItems="Center">
-        <RadioButton
-            id="rbServer"
-            text="Cartella su Server"
-            groupName="cartella"
-            select=".onCartellaChange"/>
-        <Input
-            id="idPercorsoInput"
-            placeholder="Inserisci percorso"
-            width="200px"
-            enabled="false"
-            class="sapUiSmallMarginBegin"/>
-    </HBox>
-
-    <RadioButton
-        id="rbApi"
-        text="API"
-        groupName="cartella"
-        select=".onCartellaChange"
-        class="sapUiSmallMarginBegin"/>
-</HBox>
-
-</Panel> -->
-
-        <!-- Selettore Flusso -->
         <Panel>
             <FlexBox
                 alignItems="Start"
@@ -72,17 +38,69 @@
                 </SegmentedButton>
             </FlexBox>
         </Panel>
-        <Panel>
-            <VBox>
-                <mdc:FilterBar
-                    id="filterBar"
-                    showGoButton="true"
-                    search=".onSearch"
-                >
-            <!-- Gestiti da controller -->
-                </mdc:FilterBar>
-            </VBox>
+
+        <Panel headerText="Filtri di ricerca">
+            <fb:FilterBar
+                id="filterBar"
+                persistencyKey="myPersKey"
+                useToolbar="false"
+                search=".onFilterBarSearch"
+                showGoOnFB="true"
+                isRunningInValueHelpDialog="false"
+            >
+                <fb:filterGroupItems>
+                    <fb:FilterGroupItem
+                        name="Customer"
+                        label="Cliente"
+                        groupName="Cliente"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <MultiInput
+                                id="multiInput"
+                                width="300px"
+                                showValueHelp="true"
+                                valueHelpRequest=".onValueHelpRequestedClienti"
+                                showSuggestion="true"
+                                suggestionItems="{path: 'Clienti>/I_Customer_VH'}"
+                            >
+                                <suggestionItems>
+                                    <core:Item
+                                        key="{Clienti>Customer}"
+                                        text="{Clienti>OrganizationBPName1}"
+                                    />
+                                </suggestionItems>
+                            </MultiInput>
+                        </fb:control>
+                    </fb:FilterGroupItem>
+                    <fb:FilterGroupItem
+                        name="Paese dell'Esec.Pag."
+                        label="Paese dell'Esec.Pag."
+                        groupName="General"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <MultiInput
+                                id="multiInput2"
+                                width="300px"
+                                showValueHelp="true"
+                                valueHelpRequest=".onValueHelpRequested"
+                                showSuggestion="true"
+                                suggestionItems="{path: 'Clienti>/I_Customer_VH'}"
+                            >
+                                <suggestionItems>
+                                    <core:Item
+                                        key="{Clienti>Customer}"
+                                        text="{Clienti>OrganizationBPName1}"
+                                    />
+                                </suggestionItems>
+                            </MultiInput>
+                        </fb:control>
+                    </fb:FilterGroupItem>
+                </fb:filterGroupItems>
+            </fb:FilterBar>
         </Panel>
+
         <Panel
             headerText="Elenco Fatture"
             width="100%"
@@ -124,6 +142,7 @@
                     />
                 </items>
             </IconTabBar>
+
             <Table
                 id="idTableFatture"
                 inset="false"
@@ -147,9 +166,6 @@
                     <Column width="6rem">
                         <Text text="C.F." />
                     </Column>
-                    <!-- <Column>
-                        <Text text="Tipo Fattura" />
-                    </Column> -->
                     <Column width="6rem">
                         <Text text="Definizione" />
                     </Column>
@@ -162,7 +178,7 @@
                     <Column width="6rem">
                         <Text text="Data Registrazione" />
                     </Column>
-                    <Column width="5rem"> 
+                    <Column width="5rem">
                         <Text text="Esercizio" />
                     </Column>
                     <Column width="6rem">
@@ -171,7 +187,7 @@
                     <Column width="5rem">
                         <Text text="CD Univoco" />
                     </Column>
-                    <Column width="4rem">    
+                    <Column width="4rem">
                         <Text text="PEC" />
                     </Column>
                     <Column width="6rem">
@@ -196,7 +212,6 @@
                             <Text text="{fattureModel>Nominativo}" />
                             <Text text="{fattureModel>PIVA}" />
                             <Text text="{fattureModel>CF}" />
-                            <!-- <Text text="{fattureModel>TipoFattura}" /> -->
                             <Text text="{fattureModel>Definizione}" />
                             <Text text="{fattureModel>DocFatt}" />
                             <Link
@@ -224,6 +239,11 @@
                                     press=".onViewXML"
                                 />
                                 <Button
+                                    icon="sap-icon://attachment"
+                                    type="Transparent"
+                                    press=".onViewXML"
+                                />
+                                <Button
                                     text="Visualizza Fattura"
                                     type="Transparent"
                                     press=".onShowAdvancedPDFDialog"
@@ -238,13 +258,6 @@
         <footer>
             <OverflowToolbar>
                 <ToolbarSpacer />
-                <Button
-                    id="btnCreateXML"
-                    type="Emphasized"
-                    enabled="false"
-                    text="Crea File XML"
-                    press=".onCreateXML"
-                />
                 <Button
                     id="btnInviaIntermediario"
                     type="Accept"

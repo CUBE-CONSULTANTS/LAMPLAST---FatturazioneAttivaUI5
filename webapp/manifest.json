@@ -17,26 +17,35 @@
         },
         "dataSources": {
             "mainService": {
-                "uri": "/sap/opu/odata4/sap/zeim_crud/srvd/sap/zeim_crud/0001/",
+                "uri": "/sap/opu/odata/sap/ZEIM_ATTIVO/",
                 "type": "OData",
                 "settings": {
                     "annotations": [],
                     "localUri": "localService/metadata.xml",
-                    "odataVersion": "4.0"
+                    "odataVersion": "2.0"
+                }
+            },
+            "Clienti": {
+                "uri": "/sap/opu/odata/sap/MD_CUSTOMER_MASTER_SRV_01/",
+                "type": "OData",
+                "settings": {
+                    "annotations": [],
+                    "localUri": "localService/metadata.xml",
+                    "odataVersion": "2.0"
                 }
             }
         },
         "crossNavigation": {
             "inbounds": {
                 "zcredsocieta-display": {
-                "semanticObject": "ZEIMATTIVA",
-                "action": "display",
-                "title": "{{flpTitle}}",
-                "subTitle": "{{flpSubtitle}}",
-                "signature": {
-                    "parameters": {},
-                    "additionalParameters": "allowed"
-                }
+                    "semanticObject": "ZEIMATTIVA",
+                    "action": "display",
+                    "title": "{{flpTitle}}",
+                    "subTitle": "{{flpSubtitle}}",
+                    "signature": {
+                        "parameters": {},
+                        "additionalParameters": "allowed"
+                    }
                 }
             }
         }
@@ -92,6 +101,14 @@
             "fattureModel": {
                 "type": "sap.ui.model.json.JSONModel",
                 "uri": "mockData/Fatture.json"
+            },
+            "Clienti": {
+                "dataSource": "Clienti",
+                "preload": true,
+                "settings": {
+                    "operationMode": "Server",
+                    "autoExpandSelect": true
+                }
             }
         },
         "resources": {

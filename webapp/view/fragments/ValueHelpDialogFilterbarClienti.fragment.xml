@@ -1,0 +1,57 @@
+<core:FragmentDefinition
+    xmlns="sap.ui.comp.valuehelpdialog"
+    xmlns:m="sap.m"
+    xmlns:fb="sap.ui.comp.filterbar"
+    xmlns:core="sap.ui.core"
+>
+    <ValueHelpDialog
+        title="Product"
+        ok=".onValueHelpOkPress"
+        cancel=".onValueHelpCancelPress"
+        afterClose=".onValueHelpAfterClose"
+        supportRanges="true"
+        key="ProductCode"
+        descriptionKey="ProductName"
+    >
+        <filterBar>
+            <fb:FilterBar
+                advancedMode="true"
+                search=".onFilterBarSearch"
+                isRunningInValueHelpDialog="true"
+            >
+                <fb:filterGroupItems>
+                    <fb:FilterGroupItem
+                        groupName="__$INTERNAL$"
+                        name="Customer"
+                        label="Cliente"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <m:Input name="Customer" />
+                        </fb:control>
+                    </fb:FilterGroupItem>
+                    <fb:FilterGroupItem
+                        groupName="__$INTERNAL$"
+                        name="OrganizationBPName1"
+                        label="Descrizione"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <m:Input name="OrganizationBPName1" />
+                        </fb:control>
+                    </fb:FilterGroupItem>
+                    <fb:FilterGroupItem
+                        groupName="__$INTERNAL$"
+                        name="CityName"
+                        label="Città"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <m:Input name="CityName" />
+                        </fb:control>
+                    </fb:FilterGroupItem>
+                </fb:filterGroupItems>
+            </fb:FilterBar>
+        </filterBar>
+    </ValueHelpDialog>
+</core:FragmentDefinition>
