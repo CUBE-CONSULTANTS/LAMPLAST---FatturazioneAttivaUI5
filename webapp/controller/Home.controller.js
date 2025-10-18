@@ -33,179 +33,6 @@ sap.ui.define([
             this.oFilterBar = this.byId("filterBar");
         },
 
-        onValueHelpRequestedClienti: function () {
-            this._oBasicSearchField = new SearchField({
-                width: "100%",
-                liveChange: function (oEvent) {
-                    var sValue = oEvent.getParameter("newValue");
-                    this._applyCustomerFilter(sValue);
-                }.bind(this)
-            });
-
-            this.loadFragment({
-                name: "com.zeim.fatturazioneattiva.view.fragments.ValueHelpDialogFilterbarClienti"
-            }).then(function (oDialog) {
-                var oFilterBar = oDialog.getFilterBar();
-                this._oVHD = oDialog;
-                this.getView().addDependent(oDialog);
-
-                oDialog.setRangeKeyFields([{
-                    label: "Customer",
-                    key: "Customer",
-                    type: "string"
-                }]);
-
-                oDialog.setKey("Customer");
-                oDialog.setDescriptionKey("OrganizationBPName1");
-                oDialog.setTokenDisplayBehaviour(sap.ui.comp.smartfilterbar.DisplayBehaviour.descriptionAndId);
-
-                oFilterBar.setFilterBarExpanded(false);
-                oFilterBar.setBasicSearch(this._oBasicSearchField);
-
-                // Gestione evento "search" del FilterBar
-                oFilterBar.attachSearch(this.onFilterBarSearch.bind(this));
-
-                oDialog.getTableAsync().then(function (oTable) {
-                    const oCustomerModel = this.getOwnerComponent().getModel("Clienti");
-                    oTable.setModel(oCustomerModel);
-
-                    if (oTable.bindRows) {
-                        oTable.bindAggregation("rows", {
-                            path: "/I_Customer_VH",
-                            events: {
-                                dataReceived: function () {
-                                    oDialog.update();
-                                }
-                            }
-                        });
-
-                        oTable.addColumn(new UIColumn({
-                            label: new Label({ text: "Cliente" }),
-                            template: new Text({ text: "{Customer}" })
-                        }));
-                        oTable.addColumn(new UIColumn({
-                            label: new Label({ text: "Descrizione" }),
-                            template: new Text({ text: "{OrganizationBPName1}" })
-                        }));
-                        oTable.addColumn(new UIColumn({
-                            label: new Label({ text: "Città" }),
-                            template: new Text({ text: "{CityName}" })
-                        }));
-                    }
-
-                    oDialog.update();
-                }.bind(this));
-
-                // Imposta i token già presenti
-                var aCurrentTokens = this.byId("multiInput").getTokens();
-                oDialog.setTokens(aCurrentTokens);
-
-                oDialog.attachAfterOpen(function () {
-                    oFilterBar.search();
-                });
-
-                oDialog.open();
-            }.bind(this));
-        },
-
-
-        _applyCustomerFilter: function (sQuery) {
-            var oDialog = this._oVHD;
-            if (!oDialog) return;
-
-            oDialog.getTableAsync().then(function (oTable) {
-                var oBinding = oTable.bindRows ? oTable.getBinding("rows") : oTable.getBinding("items");
-                if (!oBinding) return;
-
-                var aFilters = [];
-                if (sQuery && sQuery.trim()) {
-                    var aInnerFilters = [
-                        new sap.ui.model.Filter("OrganizationBPName1", sap.ui.model.FilterOperator.Contains, sQuery),
-                        new sap.ui.model.Filter("CityName", sap.ui.model.FilterOperator.Contains, sQuery)
-                    ];
-
-
-                    if (sQuery.length <= 10) {
-                        aInnerFilters.push(
-                            new sap.ui.model.Filter("Customer", sap.ui.model.FilterOperator.Contains, sQuery)
-                        );
-                    }
-
-                    aFilters.push(new sap.ui.model.Filter({
-                        filters: aInnerFilters,
-                        and: false
-                    }));
-                }
-
-                oBinding.filter(aFilters);
-                oDialog.update();
-            });
-        },
-
-
-        _onMultiInputValidate: function (oArgs) {
-            const oSuggestion = oArgs.suggestionObject;
-
-            if (!oSuggestion || !oSuggestion.getBindingContext) {
-                return new sap.m.Token({
-                    key: oArgs.text,
-                    text: oArgs.text
-                });
-            }
-
-            const oContext = oSuggestion.getBindingContext("Clienti");
-            if (!oContext) {
-                return new sap.m.Token({
-                    key: oArgs.text,
-                    text: oArgs.text
-                });
-            }
-
-            const oObj = oContext.getObject();
-            if (!oObj.Customer || !oObj.OrganizationBPName1) {
-                return new sap.m.Token({
-                    key: oArgs.text,
-                    text: oArgs.text
-                });
-            }
-
-            return new sap.m.Token({
-                key: oObj.Customer,
-                text: `${oObj.OrganizationBPName1} (${oObj.Customer})`
-            });
-        },
-
-
-        onFilterBarSearch: function (oEvent) {
-            var oFilterBar = oEvent.getSource();
-
-            // Recupera i valori dei campi della filterbar
-            var sCustomer = oFilterBar.determineControlByName("Customer")?.getValue().trim() || "";
-            var sDescription = oFilterBar.determineControlByName("OrganizationBPName1")?.getValue().trim() || "";
-            var sCity = oFilterBar.determineControlByName("CityName")?.getValue().trim() || "";
-
-            // Recupera anche il valore della ricerca libera (campo "Cerca")
-            var sBasicSearch = this._oBasicSearchField?.getValue().trim() || "";
-
-            // Crea un'unica query combinata
-            var sQuery = sBasicSearch || sDescription || sCustomer || sCity;
-            this._applyCustomerFilter(sQuery);
-        },
-
-        onValueHelpOkPress: function (oEvent) {
-            var aTokens = oEvent.getParameter("tokens");
-            this._oMultiInput.setTokens(aTokens);
-            this._oVHD.close();
-        },
-
-        onValueHelpCancelPress: function () {
-            this._oVHD.close();
-        },
-
-        onValueHelpAfterClose: function () {
-            this._oVHD.destroy();
-        },
-
         _updateCounts: function () {
             var oModel = this.getOwnerComponent().getModel("fattureModel");
             var aFatture = oModel.getProperty("/Fatture");
@@ -395,6 +222,121 @@ sap.ui.define([
                 link.download = sFileName;
                 link.click();
             });
+        },
+
+        _onMultiInputValidate: function (oArgs) {
+            const oInput = oArgs.sender; // l'input che ha invocato la validazione
+            const sModel = oInput.data("model");
+            const sKeyProp = oInput.data("key");
+            const sDescProp = oInput.data("desc");
+
+            const oSuggestion = oArgs.suggestionObject;
+
+            // Caso 1: Nessun suggerimento (token libero)
+            if (!oSuggestion || !oSuggestion.getBindingContext) {
+                return new sap.m.Token({
+                    key: oArgs.text,
+                    text: oArgs.text
+                });
+            }
+
+            const oContext = oSuggestion.getBindingContext(sModel);
+            if (!oContext) {
+                return new sap.m.Token({
+                    key: oArgs.text,
+                    text: oArgs.text
+                });
+            }
+
+            const oObj = oContext.getObject();
+            if (!oObj[sKeyProp] || !oObj[sDescProp]) {
+                return new sap.m.Token({
+                    key: oArgs.text,
+                    text: oArgs.text
+                });
+            }
+
+            return new sap.m.Token({
+                key: oObj[sKeyProp],
+                text: `${oObj[sDescProp]} (${oObj[sKeyProp]})`
+            });
+        },
+
+
+        onValueHelpClienti: function () {
+            sap.ui.require([
+                "com/zeim/fatturazioneattiva/controller/helpers/ValueHelpHandler"
+            ], function (VH) {
+                VH.openValueHelp(
+                    this,
+                    "com.zeim.fatturazioneattiva.view.fragments.ValueHelpDialogFilterbarClienti",
+                    "Clienti",
+                    "/I_Customer_VH",
+                    {
+                        key: "Customer",
+                        desc: "OrganizationBPName1",
+                        keyProp: "Customer",
+                        maxKeyLength: 10, // regola: oltre 10 char non filtrare su Customer
+                        filterProps: ["Customer", "OrganizationBPName1", "CityName"],
+                        columns: [
+                            { label: "Cliente", path: "Customer" },
+                            { label: "Descrizione", path: "OrganizationBPName1" },
+                            { label: "Città", path: "CityName" }
+                        ],
+                        multiInputId: "multiInput"
+                    }
+                );
+            }.bind(this));
+        },
+
+        onValueHelpPaeseEsecutore: function () {
+            sap.ui.require([
+                "com/zeim/fatturazioneattiva/controller/helpers/ValueHelpHandler"
+            ], function (VH) {
+                VH.openValueHelp(
+                    this,
+                    "com.zeim.fatturazioneattiva.view.fragments.ValueHelpDialogFilterbarPaeseEsecutore",
+                    "MCPaeseEsecutore",
+                    "/I_Country",
+                    {
+                        key: "Country",
+                        desc: "CountryName",
+                        keyProp: "Country",
+                        filterProps: ["Country", "Country_Text"],
+                        columns: [
+                            { label: "Codice Paese", path: "Country" },
+                            { label: "Nome Paese", path: "Country_Text" }
+                        ],
+                        multiInputId: "multiInputPaeseEsecutore"
+                    }
+                );
+            }.bind(this));
+        },
+
+        onValueHelpOrgCommerciale: function(){
+            sap.ui.require([
+                "com/zeim/fatturazioneattiva/controller/helpers/ValueHelpHandler"
+            ], function (VH){
+                VH.openValueHelp(
+                    this,
+                    "com.zeim.fatturazioneattiva.view.fragments.ValueHelpDialogFilterBarMCOrgCommerciale",
+                    "MCOrgCommerciale",
+                    "/C_SalesOrgVHTemp",
+                    {
+                        key: "SalesOrganization",
+                        desc: "SalesOrganization",
+                        keyProp: "SalesOrganization",
+                        filterProps: "SalesOrganization",
+                        columns: [
+                            { label: "SalesOrganization", path: "SalesOrganization"}
+                        ],
+                        multiInputId: "multiInputOrgCommerciale"
+                    }
+                )
+            }.bind(this))
         }
+
+
+
     });
 });

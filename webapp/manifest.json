@@ -33,6 +33,24 @@
                     "localUri": "localService/metadata.xml",
                     "odataVersion": "2.0"
                 }
+            },
+            "MCPaeseEsecutore":{
+                "uri": "/sap/opu/odata/sap/MD_CUSTOMER_MASTER_SRV_01/",
+                "type": "OData",
+                "settings": {
+                    "annotations": [],
+                    "localUri": "localService/metadata.xml",
+                    "odataVersion": "2.0"
+                }
+            },
+            "MCOrgCommerciale":{
+                "uri": "/sap/opu/odata/sap/MD_CUSTOMER_MASTER_SRV_01/",
+                "type": "OData",
+                "settings": {
+                    "annotations": [],
+                    "localUri": "localService/metadata.xml",
+                    "odataVersion": "2.0"
+                }
             }
         },
         "crossNavigation": {
@@ -104,6 +122,22 @@
             },
             "Clienti": {
                 "dataSource": "Clienti",
+                "preload": true,
+                "settings": {
+                    "operationMode": "Server",
+                    "autoExpandSelect": true
+                }
+            },
+            "MCPaeseEsecutore":{
+                "dataSource": "MCPaeseEsecutore",
+                "preload": true,
+                "settings": {
+                    "operationMode": "Server",
+                    "autoExpandSelect": true
+                }
+            },
+            "MCOrgCommerciale":{
+                "dataSource": "MCOrgCommerciale",
                 "preload": true,
                 "settings": {
                     "operationMode": "Server",

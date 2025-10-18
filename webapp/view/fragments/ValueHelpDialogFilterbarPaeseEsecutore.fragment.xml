@@ -5,7 +5,7 @@
     xmlns:core="sap.ui.core">
 
     <!-- Dialog senza handler, key e desc -->
-    <ValueHelpDialog title="Clienti">
+    <ValueHelpDialog title="Paese Esecutore">
 
         <filterBar>
             <fb:FilterBar advancedMode="true" isRunningInValueHelpDialog="true">
@@ -13,34 +13,23 @@
 
                     <fb:FilterGroupItem
                         groupName="__$INTERNAL$"
-                        name="Customer"
-                        label="Cliente"
+                        name="Country"
+                        label="Country"
                         visibleInFilterBar="true">
                         <fb:control>
-                            <m:Input name="Customer"/>
+                            <m:Input name="Country"/>
                         </fb:control>
                     </fb:FilterGroupItem>
 
                     <fb:FilterGroupItem
                         groupName="__$INTERNAL$"
-                        name="OrganizationBPName1"
+                        name="Country_Text"
                         label="Descrizione"
                         visibleInFilterBar="true">
                         <fb:control>
-                            <m:Input name="OrganizationBPName1"/>
+                            <m:Input name="Country_Text"/>
                         </fb:control>
                     </fb:FilterGroupItem>
-
-                    <fb:FilterGroupItem
-                        groupName="__$INTERNAL$"
-                        name="CityName"
-                        label="Città"
-                        visibleInFilterBar="true">
-                        <fb:control>
-                            <m:Input name="CityName"/>
-                        </fb:control>
-                    </fb:FilterGroupItem>
-
                 </fb:filterGroupItems>
             </fb:FilterBar>
         </filterBar>

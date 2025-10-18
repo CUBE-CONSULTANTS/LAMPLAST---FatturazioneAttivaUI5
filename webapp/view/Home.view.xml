@@ -60,9 +60,12 @@
                                 id="multiInput"
                                 width="300px"
                                 showValueHelp="true"
-                                valueHelpRequest=".onValueHelpRequestedClienti"
+                                valueHelpRequest=".onValueHelpClienti"
                                 showSuggestion="true"
                                 suggestionItems="{path: 'Clienti>/I_Customer_VH'}"
+                                data-model="Clienti"
+                                data-key="Customer"
+                                data-desc="OrganizationBPName1"
                             >
                                 <suggestionItems>
                                     <core:Item
@@ -81,17 +84,47 @@
                     >
                         <fb:control>
                             <MultiInput
-                                id="multiInput2"
+                                id="multiInputPaeseEsecutore"
                                 width="300px"
                                 showValueHelp="true"
-                                valueHelpRequest=".onValueHelpRequested"
+                                valueHelpRequest=".onValueHelpPaeseEsecutore"
                                 showSuggestion="true"
-                                suggestionItems="{path: 'Clienti>/I_Customer_VH'}"
+                                suggestionItems="{path: 'MCPaeseEsecutore>/I_Country'}"
+                                data-model="MCPaeseEsecutore"
+                                data-key="Country"
+                                data-desc="Country_Text"
                             >
                                 <suggestionItems>
                                     <core:Item
-                                        key="{Clienti>Customer}"
-                                        text="{Clienti>OrganizationBPName1}"
+                                        key="{MCPaeseEsecutore>Country}"
+                                        text="{MCPaeseEsecutore>Country_Text}"
+                                    />
+                                </suggestionItems>
+                            </MultiInput>
+                        </fb:control>
+                    </fb:FilterGroupItem>
+                    <fb:FilterGroupItem
+                        name="Org. Commerciale"
+                        label="Org. Commerciale"
+                        groupName="General"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <MultiInput
+                                id="multiInputMCOrgCommerciale"
+                                width="300px"
+                                showValueHelp="true"
+                                valueHelpRequest=".onValueHelpOrgCommerciale"
+                                showSuggestion="true"
+                                suggestionItems="{path: 'MCOrgCommerciale>/C_SalesOrgVHTemp'}"
+                                data-model="MCOrgCommerciale"
+                                data-key="SalesOrganization"
+                                data-desc="SalesOrganization"
+                            >
+                                <suggestionItems>
+                                    <core:Item
+                                        key="{MCOrgCommerciale>SalesOrganization}"
+                                        text="{MCOrgCommerciale>SalesOrganization}"
                                     />
                                 </suggestionItems>
                             </MultiInput>
