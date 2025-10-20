@@ -24,33 +24,6 @@
                     "localUri": "localService/metadata.xml",
                     "odataVersion": "2.0"
                 }
-            },
-            "Clienti": {
-                "uri": "/sap/opu/odata/sap/MD_CUSTOMER_MASTER_SRV_01/",
-                "type": "OData",
-                "settings": {
-                    "annotations": [],
-                    "localUri": "localService/metadata.xml",
-                    "odataVersion": "2.0"
-                }
-            },
-            "MCPaeseEsecutore": {
-                "uri": "/sap/opu/odata/sap/MD_CUSTOMER_MASTER_SRV_01/",
-                "type": "OData",
-                "settings": {
-                    "annotations": [],
-                    "localUri": "localService/metadata.xml",
-                    "odataVersion": "2.0"
-                }
-            },
-            "MCOrgCommerciale": {
-                "uri": "/sap/opu/odata/sap/MD_CUSTOMER_MASTER_SRV_01/",
-                "type": "OData",
-                "settings": {
-                    "annotations": [],
-                    "localUri": "localService/metadata.xml",
-                    "odataVersion": "2.0"
-                }
             }
         },
         "crossNavigation": {
@@ -121,7 +94,7 @@
                 "uri": "mockData/Fatture.json"
             },
             "Clienti": {
-                "dataSource": "Clienti",
+                "dataSource": "mainService",
                 "preload": true,
                 "settings": {
                     "operationMode": "Server",
@@ -129,7 +102,7 @@
                 }
             },
             "MCPaeseEsecutore": {
-                "dataSource": "MCPaeseEsecutore",
+                "dataSource": "mainService",
                 "preload": true,
                 "settings": {
                     "operationMode": "Server",
@@ -137,7 +110,7 @@
                 }
             },
             "MCOrgCommerciale": {
-                "dataSource": "MCOrgCommerciale",
+                "dataSource": "mainService",
                 "preload": true,
                 "settings": {
                     "operationMode": "Server",

@@ -288,7 +288,7 @@ sap.ui.define([
                     this,
                     "com.zeim.fatturazioneattiva.view.fragments.ValueHelpDialogFilterbarClienti",
                     "Clienti",
-                    "/I_Customer_VH",
+                    "/I_Customer",
                     {
                         key: "Customer",
                         desc: "OrganizationBPName1",
