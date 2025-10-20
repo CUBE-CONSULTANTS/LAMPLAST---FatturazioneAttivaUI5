@@ -23,7 +23,7 @@ sap.ui.define([
             var oMultiInput = this.byId("multiInput");
             this._oMultiInput = oMultiInput;
 
-            this.byId("multiInput").addValidator(this._onMultiInputValidate.bind(this));
+            //this.byId("multiInput").addValidator(this._onMultiInputValidate.bind(this));
 
             var oViewModel = new sap.ui.model.json.JSONModel({
                 currentFlow: "sd"
@@ -31,6 +31,21 @@ sap.ui.define([
             this.getView().setModel(oViewModel, "viewModel");
 
             this.oFilterBar = this.byId("filterBar");
+
+            const aFGI = this.oFilterBar.getFilterGroupItems();
+            this._filters = {
+                tipoFatturaSD: aFGI.find(f => f.getName() === "Tipo Fattura SD"),
+                tipoFatturaFI: aFGI.find(f => f.getName() === "Tipo Fattura FI")
+            };
+
+            // Mostra solo SD all'avvio
+            if (this._filters.tipoFatturaSD) {
+                this._filters.tipoFatturaSD.setVisibleInFilterBar(true);
+            }
+            if (this._filters.tipoFatturaFI) {
+                this._filters.tipoFatturaFI.setVisibleInFilterBar(false);
+            }
+
         },
 
         _updateCounts: function () {
@@ -54,23 +69,25 @@ sap.ui.define([
         },
 
         onSegmentChange: function (oEvent) {
-            var sKey = oEvent.getParameter("item").getKey();
+            const sKey = oEvent.getParameter("item").getKey();
 
-            if (sKey === "sd") {
-                this._filterOrder.forEach((f, idx) => {
-                    if (this.oFilterBar.getFilterItems().indexOf(f) === -1) {
-                        this.oFilterBar.insertFilterItem(f, idx);
-                    }
-                });
-            } else if (sKey === "fi") {
-                if (this.oFilterBar.getFilterItems().indexOf(this._filters.societa) !== -1) {
-                    this.oFilterBar.removeFilterItem(this._filters.societa);
-                }
-                if (this.oFilterBar.getFilterItems().indexOf(this._filters.orgComm) !== -1) {
-                    this.oFilterBar.removeFilterItem(this._filters.orgComm);
-                }
+            if (!this._filters || !this.oFilterBar) return;
+
+            const bIsSD = sKey === "sd";
+            const bIsFI = sKey === "fi";
+
+            if (this._filters.tipoFatturaSD) {
+                this._filters.tipoFatturaSD.setVisibleInFilterBar(bIsSD);
             }
+            if (this._filters.tipoFatturaFI) {
+                this._filters.tipoFatturaFI.setVisibleInFilterBar(bIsFI);
+            }
+
+            // Aggiorna la FilterBar per ridisegnarsi
+            this.oFilterBar.invalidate();
+            this.oFilterBar.rerender();
         },
+
 
         onElaborazioneChange: function (oEvent) {
             var i = oEvent.getSource().getSelectedIndex();
@@ -224,43 +241,43 @@ sap.ui.define([
             });
         },
 
-        _onMultiInputValidate: function (oArgs) {
-            const oInput = oArgs.sender; // l'input che ha invocato la validazione
-            const sModel = oInput.data("model");
-            const sKeyProp = oInput.data("key");
-            const sDescProp = oInput.data("desc");
+        // _onMultiInputValidate: function (oArgs) {
+        //     const oInput = oArgs.sender; // l'input che ha invocato la validazione
+        //     const sModel = oInput.data("model");
+        //     const sKeyProp = oInput.data("key");
+        //     const sDescProp = oInput.data("desc");
 
-            const oSuggestion = oArgs.suggestionObject;
+        //     const oSuggestion = oArgs.suggestionObject;
 
-            // Caso 1: Nessun suggerimento (token libero)
-            if (!oSuggestion || !oSuggestion.getBindingContext) {
-                return new sap.m.Token({
-                    key: oArgs.text,
-                    text: oArgs.text
-                });
-            }
+        //     // Caso 1: Nessun suggerimento (token libero)
+        //     if (!oSuggestion || !oSuggestion.getBindingContext) {
+        //         return new sap.m.Token({
+        //             key: oArgs.text,
+        //             text: oArgs.text
+        //         });
+        //     }
 
-            const oContext = oSuggestion.getBindingContext(sModel);
-            if (!oContext) {
-                return new sap.m.Token({
-                    key: oArgs.text,
-                    text: oArgs.text
-                });
-            }
+        //     const oContext = oSuggestion.getBindingContext(sModel);
+        //     if (!oContext) {
+        //         return new sap.m.Token({
+        //             key: oArgs.text,
+        //             text: oArgs.text
+        //         });
+        //     }
 
-            const oObj = oContext.getObject();
-            if (!oObj[sKeyProp] || !oObj[sDescProp]) {
-                return new sap.m.Token({
-                    key: oArgs.text,
-                    text: oArgs.text
-                });
-            }
+        //     const oObj = oContext.getObject();
+        //     if (!oObj[sKeyProp] || !oObj[sDescProp]) {
+        //         return new sap.m.Token({
+        //             key: oArgs.text,
+        //             text: oArgs.text
+        //         });
+        //     }
 
-            return new sap.m.Token({
-                key: oObj[sKeyProp],
-                text: `${oObj[sDescProp]} (${oObj[sKeyProp]})`
-            });
-        },
+        //     return new sap.m.Token({
+        //         key: oObj[sKeyProp],
+        //         text: `${oObj[sDescProp]} (${oObj[sKeyProp]})`
+        //     });
+        // },
 
 
         onValueHelpClienti: function () {
@@ -330,6 +347,29 @@ sap.ui.define([
                         columns: [
                             { label: "Tipo Fattura", path: "BillingDocumentType" },
                             { label: "Descrizione", path: "BillingDocumentType_Text" }
+                        ],
+                        multiInputId: "multiInputTipoFatturaSD"
+                    }
+                );
+            }.bind(this));
+        },
+        onValueHelpTipoFatturaFI: function () {
+            sap.ui.require([
+                "com/zeim/fatturazioneattiva/controller/helpers/ValueHelpHandler"
+            ], function (VH) {
+                VH.openValueHelp(
+                    this,
+                    "com.zeim.fatturazioneattiva.view.fragments.ValueHelpDialogFilterbarMCTipoFatturaFI",
+                    "MCTipoFatturaFI",
+                    "/I_AccountingDocumentType",
+                    {
+                        key: "AccountingDocumentType",
+                        desc: "AccountingDocumentType_Text",
+                        keyProp: "AccountingDocumentType",
+                        filterProps: ["AccountingDocumentType", "AccountingDocumentType_Text"],
+                        columns: [
+                            { label: "Tipo Fattura", path: "AccountingDocumentType" },
+                            { label: "Descrizione", path: "AccountingDocumentType_Text" }
                         ],
                         multiInputId: "multiInputTipoFatturaSD"
                     }

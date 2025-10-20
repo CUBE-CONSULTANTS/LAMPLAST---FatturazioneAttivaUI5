@@ -1,0 +1,37 @@
+<core:FragmentDefinition
+    xmlns="sap.ui.comp.valuehelpdialog"
+    xmlns:m="sap.m"
+    xmlns:fb="sap.ui.comp.filterbar"
+    xmlns:core="sap.ui.core"
+>
+    <!-- Dialog senza handler, key e desc -->
+    <ValueHelpDialog title="Tipo Fattura">
+        <filterBar>
+            <fb:FilterBar
+                advancedMode="true"
+                isRunningInValueHelpDialog="true"
+            >
+                <fb:filterGroupItems>
+                    <fb:FilterGroupItem
+                        groupName="__$INTERNAL$"
+                        name="TipoFattura"
+                        label="Tipo Fattura"
+                    >
+                        <fb:control>
+                            <m:Input name="AccountingDocumentType" />
+                        </fb:control>
+                    </fb:FilterGroupItem>
+                    <fb:FilterGroupItem
+                        groupName="__$INTERNAL$"
+                        name="TipoFatturaDescrizone"
+                        label="Tipo Fattura Descrizione"
+                    >
+                        <fb:control>
+                            <m:Input name="AccountingDocumentType_Text" />
+                        </fb:control>
+                    </fb:FilterGroupItem>
+                </fb:filterGroupItems>
+            </fb:FilterBar>
+        </filterBar>
+    </ValueHelpDialog>
+</core:FragmentDefinition>

@@ -34,7 +34,7 @@
                     "odataVersion": "2.0"
                 }
             },
-            "MCPaeseEsecutore":{
+            "MCPaeseEsecutore": {
                 "uri": "/sap/opu/odata/sap/MD_CUSTOMER_MASTER_SRV_01/",
                 "type": "OData",
                 "settings": {
@@ -43,7 +43,7 @@
                     "odataVersion": "2.0"
                 }
             },
-            "MCOrgCommerciale":{
+            "MCOrgCommerciale": {
                 "uri": "/sap/opu/odata/sap/MD_CUSTOMER_MASTER_SRV_01/",
                 "type": "OData",
                 "settings": {
@@ -128,7 +128,7 @@
                     "autoExpandSelect": true
                 }
             },
-            "MCPaeseEsecutore":{
+            "MCPaeseEsecutore": {
                 "dataSource": "MCPaeseEsecutore",
                 "preload": true,
                 "settings": {
@@ -136,7 +136,7 @@
                     "autoExpandSelect": true
                 }
             },
-            "MCOrgCommerciale":{
+            "MCOrgCommerciale": {
                 "dataSource": "MCOrgCommerciale",
                 "preload": true,
                 "settings": {
@@ -144,15 +144,23 @@
                     "autoExpandSelect": true
                 }
             },
-            "MCSocieta":{
+            "MCSocieta": {
                 "dataSource": "mainService",
                 "preload": true,
                 "settings": {
-                    "operationMode" : "Server",
+                    "operationMode": "Server",
                     "autoExpandSelect": true
                 }
             },
-            "MCTipoFatturaSD":{
+            "MCTipoFatturaSD": {
+                "dataSource": "mainService",
+                "preload": true,
+                "settings": {
+                    "operationMode": "Server",
+                    "autoExpandSelect": true
+                }
+            },
+            "MCTipoFatturaFI": {
                 "dataSource": "mainService",
                 "preload": true,
                 "settings": {
@@ -160,7 +168,6 @@
                     "autoExpandSelect": true
                 }
             }
-
         },
         "resources": {
             "css": [

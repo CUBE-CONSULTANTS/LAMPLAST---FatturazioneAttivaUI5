@@ -9,49 +9,70 @@ sap.ui.define([
 ], function (Fragment, SearchField, Filter, FilterOperator, UIColumn, Label, Text) {
   "use strict";
 
+  // --- helper: applica filtro OR sui campi indicati
   function _applyFilter(oDialog, sQuery, aProps, oOptions) {
     oDialog.getTableAsync().then(function (oTable) {
-      var oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+      const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
       if (!oBinding) return;
 
-      var aFilterProps = aProps.slice();
-
-      // Regola: se supero la lunghezza chiave, escludo il campo chiave (es. "Customer")
+      let aFilterProps = aProps.slice();
       if (oOptions?.maxKeyLength && sQuery && sQuery.length > oOptions.maxKeyLength && oOptions.keyProp) {
         aFilterProps = aFilterProps.filter(p => p !== oOptions.keyProp);
       }
 
-      var aInner = [];
+      let aInner = [];
       if (sQuery && sQuery.trim()) {
         aInner = aFilterProps.map(p => new Filter(p, FilterOperator.Contains, sQuery));
       }
+
+      // ⚠️ Importante: riseleziona dopo che i dati arrivano
+      oBinding.attachDataReceived(function onDR() {
+        oBinding.detachDataReceived(onDR);
+        oOptions?.onAfterUpdate?.();
+      });
 
       oBinding.filter(aInner.length ? new Filter(aInner, false) : []);
       oDialog.update();
     });
   }
 
+  // --- helper: riseleziona in tabella le righe corrispondenti ai token
+  function _reselectRows(oTable, aSelectedKeys, sKeyProp) {
+    const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+    if (!oBinding) return;
+
+    // prendi tutti i contesti disponibili (anche con server-side paging restituisce quelli caricati)
+    const iLen = oBinding.getLength();
+    const aCtxs = oBinding.getContexts(0, iLen);
+
+    const setKeys = new Set(aSelectedKeys);
+    if (oTable.clearSelection) oTable.clearSelection();
+
+    aCtxs.forEach((oCtx, i) => {
+      const oObj = oCtx.getObject && oCtx.getObject();
+      if (oObj && setKeys.has(oObj[sKeyProp])) {
+        // sap.ui.table.Table
+        if (oTable.addSelectionInterval) {
+          oTable.addSelectionInterval(i, i);
+        }
+        // (se un giorno userai sap.m.Table, qui potresti marcare gli items)
+      }
+    });
+  }
+
   return {
-    /**
-     * Apre un ValueHelpDialog generico.
-     * @param {sap.ui.core.mvc.Controller} oController
-     * @param {string} sFragmentName
-     * @param {string} sModelName
-     * @param {string} sEntityPath es. "/I_Customer_VH"
-     * @param {object} oSettings { key, desc, filterProps[], columns[], multiInputId, maxKeyLength, keyProp }
-     */
     openValueHelp: function (oController, sFragmentName, sModelName, sEntityPath, oSettings) {
       Fragment.load({ name: sFragmentName, controller: oController }).then(function (oDialog) {
 
-        // Basic search collegata alla FilterBar
-        var oBasicSearch = new SearchField({
+        // --- basic search
+        const oBasicSearch = new SearchField({
           width: "100%",
-          liveChange: function (oEvent) {
-            _applyFilter(oDialog, oEvent.getParameter("newValue"), oSettings.filterProps, {
+          liveChange: (e) =>
+            _applyFilter(oDialog, e.getParameter("newValue"), oSettings.filterProps, {
               maxKeyLength: oSettings.maxKeyLength,
-              keyProp: oSettings.keyProp
-            });
-          }
+              keyProp: oSettings.keyProp,
+              onAfterUpdate: fnReselect // lo definiamo sotto
+            })
         });
 
         oDialog.setKey(oSettings.key);
@@ -59,40 +80,67 @@ sap.ui.define([
         oDialog.setRangeKeyFields([{ key: oSettings.key, label: oSettings.key, type: "string" }]);
         oDialog.setTokenDisplayBehaviour("descriptionAndId");
 
-        var oFilterBar = oDialog.getFilterBar();
+        const oFilterBar = oDialog.getFilterBar();
         oFilterBar.setFilterBarExpanded(false);
         oFilterBar.setBasicSearch(oBasicSearch);
-        oFilterBar.attachSearch(function (oEvent) {
-          var oFB = oEvent.getSource();
-          // Costruisco una query unica prendendo il primo campo non vuoto (oppure la basic search)
-          var sQuery =
-            oBasicSearch.getValue().trim() ||
-            oSettings.filterProps
-              .map(function (p) { return oFB.determineControlByName(p)?.getValue().trim(); })
-              .find(Boolean) || "";
-          _applyFilter(oDialog, sQuery, oSettings.filterProps, {
-            maxKeyLength: oSettings.maxKeyLength,
-            keyProp: oSettings.keyProp
-          });
-        });
 
+        // --- tabella
         oDialog.getTableAsync().then(function (oTable) {
-          oTable.setModel(oController.getOwnerComponent().getModel(sModelName));
-          console.log("Model found:", oController.getOwnerComponent().getModel(sModelName));
+          const oModel = oController.getOwnerComponent().getModel(sModelName);
+          oTable.setModel(oModel);
           oTable.bindRows({ path: sEntityPath });
 
-          oSettings.columns.forEach(function (c) {
+          oSettings.columns.forEach((c) => {
             oTable.addColumn(new UIColumn({
               label: new Label({ text: c.label }),
               template: new Text({ text: `{${c.path}}` })
             }));
           });
 
+          // tokens correnti nel MultiInput
+          const oMultiInput = oController.byId(oSettings.multiInputId);
+          const aTokens = oMultiInput ? oMultiInput.getTokens() : [];
+          let aSelectedKeys = aTokens.map(t => t.getKey());
+
+          // --- funzione che riseleziona dopo ogni load/ricerca
+          function fnReselect() {
+            // delay minimo per essere *dopo* il rendering righe
+            setTimeout(() => _reselectRows(oTable, aSelectedKeys, oSettings.key), 0);
+          }
+
+          // 1) prima popolazione: quando arrivano i dati iniziali
+          const oBinding = oTable.getBinding("rows");
+          if (oBinding) {
+            oBinding.attachDataReceived(function onFirstDR() {
+              oBinding.detachDataReceived(onFirstDR);
+              fnReselect();
+            });
+          }
+
+          // 2) quando premi "Avvio" nella filterbar
+          oFilterBar.attachSearch(function (ev) {
+            const fb = ev.getSource();
+            const sQuery =
+              oBasicSearch.getValue().trim() ||
+              oSettings.filterProps.map(p => fb.determineControlByName(p)?.getValue().trim())
+                .find(Boolean) || "";
+
+            // ricalcolo le chiavi (nel caso l’utente abbia tolto/aggiunto token nella vh)
+            const aNowTokens = oController.byId(oSettings.multiInputId)?.getTokens() || [];
+            aSelectedKeys = aNowTokens.map(t => t.getKey());
+
+            _applyFilter(oDialog, sQuery, oSettings.filterProps, {
+              maxKeyLength: oSettings.maxKeyLength,
+              keyProp: oSettings.keyProp,
+              onAfterUpdate: fnReselect
+            });
+          });
+
           oDialog.update();
         });
 
-        // Token: persistenza + OK/Cancel
-        var oMultiInput = oController.byId(oSettings.multiInputId);
+        // --- sincronizza i token visivi della VH con quelli del MultiInput
+        const oMultiInput = oController.byId(oSettings.multiInputId);
         if (oMultiInput) {
           oDialog.setTokens(oMultiInput.getTokens());
         }
@@ -104,18 +152,11 @@ sap.ui.define([
           oDialog.close();
         });
 
-        oDialog.attachCancel(function () {
-          oDialog.close();
-        });
+        oDialog.attachCancel(() => oDialog.close());
+        oDialog.attachAfterClose(() => oDialog.destroy());
 
-        oDialog.attachAfterClose(function () {
-          oDialog.destroy();
-        });
-
-        // Avvia con una ricerca vuota per popolare
-        oDialog.attachAfterOpen(function () {
-          oFilterBar.search();
-        });
+        // trigger popolamento iniziale
+        oDialog.attachAfterOpen(() => oFilterBar.search());
 
         oDialog.open();
       });

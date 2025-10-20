@@ -172,6 +172,32 @@
                                 </suggestionItems>
                             </MultiInput>
                         </fb:control>
+                    </fb:FilterGroupItem>  <fb:FilterGroupItem
+                        name="Tipo Fattura FI"
+                        label="Tipo Fattura FI"
+                        groupName="General"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <MultiInput
+                                id="multiInputTipoFatturaFI"
+                                width="300px"
+                                showValueHelp="true"
+                                valueHelpRequest=".onValueHelpTipoFatturaFI"
+                                showSuggestion="true"
+                                suggestionItems="{path: 'MCTipoFatturaFI>/I_AccountingDocumentType'}"
+                                data-model="MCTipoFatturaFI"
+                                data-key="AccountingDocumentType"
+                                data-desc="AccountingDocumentType_Text"
+                            >
+                                <suggestionItems>
+                                    <core:Item
+                                        key="{MCTipoFatturaFI>AccountingDocumentType}"
+                                        text="{MCTipoFatturaFI>AccountingDocumentType}"
+                                    />
+                                </suggestionItems>
+                            </MultiInput>
+                        </fb:control>
                     </fb:FilterGroupItem>
                 </fb:filterGroupItems>
             </fb:FilterBar>
