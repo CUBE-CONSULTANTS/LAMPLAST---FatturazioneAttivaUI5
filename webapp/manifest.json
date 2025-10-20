@@ -143,7 +143,24 @@
                     "operationMode": "Server",
                     "autoExpandSelect": true
                 }
+            },
+            "MCSocieta":{
+                "dataSource": "mainService",
+                "preload": true,
+                "settings": {
+                    "operationMode" : "Server",
+                    "autoExpandSelect": true
+                }
+            },
+            "MCTipoFatturaSD":{
+                "dataSource": "mainService",
+                "preload": true,
+                "settings": {
+                    "operationMode": "Server",
+                    "autoExpandSelect": true
+                }
             }
+
         },
         "resources": {
             "css": [

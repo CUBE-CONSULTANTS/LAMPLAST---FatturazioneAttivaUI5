@@ -110,21 +110,64 @@
                         visibleInFilterBar="true"
                     >
                         <fb:control>
+                            <Select
+                                id="selectOrgCommerciale"
+                                width="300px"
+                                forceSelection="false"
+                                items="{
+                                path: 'MCOrgCommerciale>/C_SalesOrgVHTemp'}"
+                            >
+                                <core:Item
+                                    key="{MCOrgCommerciale>SalesOrganization}"
+                                    text="{MCOrgCommerciale>SalesOrganization}"
+                                />
+                            </Select>
+                        </fb:control>
+                    </fb:FilterGroupItem>
+                    <fb:FilterGroupItem
+                        name="Società"
+                        label="Società"
+                        groupName="General"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <Select
+                                id="selectSocieta"
+                                width="300px"
+                                forceSelection="false"
+                                items="{
+                                path: 'MCSocieta>/ZR_EIM_COMPANY'}"
+                            >
+                                <core:Item
+                                    key="{MCSocieta>CompanyCode}"
+                                    text="{MCSocieta>CompanyCode}"
+                                />
+                            </Select>
+                        </fb:control>
+                    </fb:FilterGroupItem>
+
+                    <fb:FilterGroupItem
+                        name="Tipo Fattura SD"
+                        label="Tipo Fattura SD"
+                        groupName="General"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
                             <MultiInput
-                                id="multiInputMCOrgCommerciale"
+                                id="multiInputTipoFatturaSD"
                                 width="300px"
                                 showValueHelp="true"
-                                valueHelpRequest=".onValueHelpOrgCommerciale"
+                                valueHelpRequest=".onValueHelpTipoFatturaSD"
                                 showSuggestion="true"
-                                suggestionItems="{path: 'MCOrgCommerciale>/C_SalesOrgVHTemp'}"
-                                data-model="MCOrgCommerciale"
-                                data-key="SalesOrganization"
-                                data-desc="SalesOrganization"
+                                suggestionItems="{path: 'MCTipoFatturaSD>/I_BillingDocumentTypeStdVH'}"
+                                data-model="MCTipoFatturaSD"
+                                data-key="BillingDocumentType"
+                                data-desc="BillingDocumentType_Text"
                             >
                                 <suggestionItems>
                                     <core:Item
-                                        key="{MCOrgCommerciale>SalesOrganization}"
-                                        text="{MCOrgCommerciale>SalesOrganization}"
+                                        key="{MCTipoFatturaSD>BillingDocumentType}"
+                                        text="{MCTipoFatturaSD>BillingDocumentType}"
                                     />
                                 </suggestionItems>
                             </MultiInput>

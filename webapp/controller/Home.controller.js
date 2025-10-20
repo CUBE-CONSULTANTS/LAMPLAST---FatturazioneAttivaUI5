@@ -313,28 +313,30 @@ sap.ui.define([
             }.bind(this));
         },
 
-        onValueHelpOrgCommerciale: function(){
+        onValueHelpTipoFatturaSD: function () {
             sap.ui.require([
                 "com/zeim/fatturazioneattiva/controller/helpers/ValueHelpHandler"
-            ], function (VH){
+            ], function (VH) {
                 VH.openValueHelp(
                     this,
-                    "com.zeim.fatturazioneattiva.view.fragments.ValueHelpDialogFilterBarMCOrgCommerciale",
-                    "MCOrgCommerciale",
-                    "/C_SalesOrgVHTemp",
+                    "com.zeim.fatturazioneattiva.view.fragments.ValueHelpDialogFilterbarMCTipoFatturaSD",
+                    "MCTipoFatturaSD",
+                    "/I_BillingDocumentTypeStdVH",
                     {
-                        key: "SalesOrganization",
-                        desc: "SalesOrganization",
-                        keyProp: "SalesOrganization",
-                        filterProps: "SalesOrganization",
+                        key: "BillingDocumentType",
+                        desc: "BillingDocumentType_Text",
+                        keyProp: "BillingDocumentType",
+                        filterProps: ["BillingDocumentType", "BillingDocumentType_Text"],
                         columns: [
-                            { label: "SalesOrganization", path: "SalesOrganization"}
+                            { label: "Tipo Fattura", path: "BillingDocumentType" },
+                            { label: "Descrizione", path: "BillingDocumentType_Text" }
                         ],
-                        multiInputId: "multiInputOrgCommerciale"
+                        multiInputId: "multiInputTipoFatturaSD"
                     }
-                )
-            }.bind(this))
+                );
+            }.bind(this));
         }
+
 
 
 
