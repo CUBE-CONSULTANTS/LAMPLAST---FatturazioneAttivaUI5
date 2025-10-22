@@ -83,6 +83,7 @@ sap.ui.define([
                 this._filters.tipoFatturaFI.setVisibleInFilterBar(bIsFI);
             }
 
+            this.getView().getModel("viewModel").setProperty("/currentFlow", sKey);
             // Aggiorna la FilterBar per ridisegnarsi
             this.oFilterBar.invalidate();
             this.oFilterBar.rerender();
@@ -165,40 +166,85 @@ sap.ui.define([
             oDialog.open();
         },
 
-        onShowAdvancedPDFDialog: function (oEvent) {
-            var oContext = oEvent.getSource().getBindingContext("fattureModel");
-            var sPdfBase64 = oContext ? oContext.getProperty("PdfBase64") : null;
+        onShowAdvancedPDFDialog: async function (oEvent) {
+            const oContext = oEvent.getSource().getBindingContext("fattureModel");
+            const sFlow = this.getView().getModel("viewModel").getProperty("/currentFlow"); // "sd" o "fi"
+            const oDataModel = this.getOwnerComponent().getModel(); // OData model
+            const oData = oContext.getObject();
 
-            if (!sPdfBase64) {
-                sap.m.MessageToast.show("Nessun PDF disponibile");
+            let sPath = "";
+
+            if (sFlow === "sd") {
+                // Flusso SD → usa BillingDocument
+                const sBillingDocument = oData.NumeroDoc || oData.BillingDocument;
+                sPath = `/ZEIM_GetPDFBillingDocument('90000219')`;
+            } else if (sFlow === "fi") {
+                // Flusso FI → usa bukrs, belnr, gjahr
+                const sBukrs = oData.Societa || oData.bukrs;
+                const sBelnr = oData.NumeroDoc || oData.belnr;
+                const sGjahr = oData.Esercizio || oData.gjahr;
+
+                if (!sBukrs || !sBelnr || !sGjahr) {
+                    sap.m.MessageBox.warning("Dati incompleti per la chiamata PDF FI (bukrs/belnr/gjahr mancanti).");
+                    return;
+                }
+
+                sPath = `/ZEIM_GetPDFAccountingDocument(bukrs='1000',belnr='123456',gjahr='2024')`;
+            }
+
+            if (!sPath) {
+                sap.m.MessageToast.show("Impossibile determinare il percorso per la chiamata PDF.");
                 return;
             }
 
-            var pdfDataUrl = "data:application/pdf;base64," + sPdfBase64;
-            var oIframe = new sap.ui.core.HTML({
-                content: "<iframe src='" + pdfDataUrl + "' width='100%' height='700px' style='border:none;'></iframe>"
-            });
+            sap.ui.core.BusyIndicator.show(0);
 
-            var oDialog = new sap.m.Dialog({
-                title: "Visualizza PDF",
-                contentWidth: "90%",
-                contentHeight: "100%",
-                resizable: true,
-                draggable: true,
-                content: [oIframe],
-                beginButton: new sap.m.Button({
-                    text: "Chiudi",
-                    press: function () {
-                        oDialog.close();
-                    }
-                }),
-                afterClose: function () {
-                    oDialog.destroy();
+            try {
+                const oResponse = await new Promise((resolve, reject) => {
+                    oDataModel.read(sPath, {
+                        success: resolve,
+                        error: reject
+                    });
+                });
+
+                sap.ui.core.BusyIndicator.hide();
+
+                if (!oResponse || !oResponse.base64) {
+                    sap.m.MessageToast.show("Nessun PDF disponibile per questo documento");
+                    return;
                 }
-            });
 
-            oDialog.open();
+                const pdfDataUrl = "data:application/pdf;base64," + oResponse.base64;
+                const oIframe = new sap.ui.core.HTML({
+                    content: `<iframe src="${pdfDataUrl}" width="100%" height="700px" style="border:none;"></iframe>`
+                });
+
+                const oDialog = new sap.m.Dialog({
+                    title: `Visualizza Fattura (${sFlow.toUpperCase()})`,
+                    contentWidth: "90%",
+                    contentHeight: "100%",
+                    resizable: true,
+                    draggable: true,
+                    content: [oIframe],
+                    beginButton: new sap.m.Button({
+                        text: "Chiudi",
+                        press: function () { oDialog.close(); }
+                    }),
+                    afterClose: function () { oDialog.destroy(); }
+                });
+
+                oDialog.open();
+
+            } catch (err) {
+                sap.ui.core.BusyIndicator.hide();
+                console.error("Errore durante la lettura del PDF:", err);
+
+                const sMsg = err?.message || err?.responseText || "Errore nel recupero del PDF dal backend.";
+                sap.m.MessageBox.error(sMsg);
+            }
         },
+
+
 
         onIconTabSelect: function (oEvent) {
             var sKey = oEvent.getParameter("key");
