@@ -172,7 +172,8 @@
                                 </suggestionItems>
                             </MultiInput>
                         </fb:control>
-                    </fb:FilterGroupItem>  <fb:FilterGroupItem
+                    </fb:FilterGroupItem>
+                    <fb:FilterGroupItem
                         name="Tipo Fattura FI"
                         label="Tipo Fattura FI"
                         groupName="General"
@@ -215,32 +216,34 @@
             >
                 <items>
                     <IconTabFilter
-                        showAll="true"
-                        count="{fattureModel>/Counts/All}"
-                        text="Fatture"
                         key="All"
+                        text="Fatture"
+                        showAll="true"
+                        count="{viewModel>/counts/All}"
+                        icon="sap-icon://documents"
+                        iconColor="Neutral"
                     />
                     <IconTabSeparator />
                     <IconTabFilter
-                        key="processed"
-                        iconColor="Positive"
-                        text="Processati"
+                        key="Processed"
+                        text="Processate"
                         icon="sap-icon://accept"
-                        count="{fattureModel>/Counts/Processed}"
+                        iconColor="Positive"
+                        count="{viewModel>/counts/Processed}"
                     />
                     <IconTabFilter
-                        key="working"
-                        iconColor="Critical"
+                        key="Working"
                         text="Da processare"
                         icon="sap-icon://pending"
-                        count="{fattureModel>/Counts/Working}"
+                        iconColor="Critical"
+                        count="{viewModel>/counts/Working}"
                     />
                     <IconTabFilter
-                        key="error"
-                        iconColor="Negative"
+                        key="Error"
                         text="In errore"
                         icon="sap-icon://error"
-                        count="{fattureModel>/Counts/Error}"
+                        iconColor="Negative"
+                        count="{viewModel>/counts/Error}"
                     />
                 </items>
             </IconTabBar>
@@ -249,7 +252,7 @@
                 id="idTableFatture"
                 inset="false"
                 mode="MultiSelect"
-                items="{fattureModel>/Fatture}"
+                items="{mainService>/zeim_att_getlist}"
                 selectionChange=".onSelectionChange"
             >
                 <columns>
@@ -259,7 +262,7 @@
                     <Column width="4rem">
                         <Text text="Cliente" />
                     </Column>
-                    <Column width="5rem">
+                    <Column width="8rem">
                         <Text text="Nominativo" />
                     </Column>
                     <Column width="6rem">
@@ -268,13 +271,10 @@
                     <Column width="6rem">
                         <Text text="C.F." />
                     </Column>
-                    <Column width="6rem">
-                        <Text text="Definizione" />
-                    </Column>
                     <Column width="4rem">
                         <Text text="Doc Fatt" />
                     </Column>
-                    <Column width="4rem">
+                    <Column width="5rem">
                         <Text text="N° Doc" />
                     </Column>
                     <Column width="6rem">
@@ -306,34 +306,35 @@
                 <items>
                     <ColumnListItem>
                         <cells>
-                            <Text text="{fattureModel>Societa}" />
+                            <Text text="{mainService>bukrs}" />
                             <Link
-                                text="{fattureModel>Cliente}"
+                                text="{mainService>kunnr}"
                                 press=".onNavToCliente"
                             />
-                            <Text text="{fattureModel>Nominativo}" />
-                            <Text text="{fattureModel>PIVA}" />
-                            <Text text="{fattureModel>CF}" />
-                            <Text text="{fattureModel>Definizione}" />
-                            <Text text="{fattureModel>DocFatt}" />
+                            <Text text="{mainService>CustomerName}" />
+                            <Text text="{mainService>stcd2}" />
+                            <Text text="{mainService>stcd1}" />
+                            <Text text="{mainService>vbeln}" />
                             <Link
-                                text="{fattureModel>NumeroDoc}"
+                                text="{mainService>belnr}"
                                 press=".onNavToDocumento"
                             />
-                            <Text text="{fattureModel>DataRegistrazione}" />
-                            <Text text="{fattureModel>Esercizio}" />
+                            <Text
+                                text="{path: 'mainService>budat', formatter: '.formatter.formatDate'}"
+                            />
+                            <Text text="{mainService>gjahr}" />
                             <ObjectNumber
-                                number="{fattureModel>TotFattura}"
-                                unit="EUR"
+                                number="{mainService>wrbtr}"
+                                unit="{mainService>waers}"
                             />
                             <Text text="{fattureModel>CDUnivoco}" />
-                            <Text text="{fattureModel>PEC}" />
+                            <Text text="{mainService>PEC}" />
                             <ObjectStatus
-                                text="{fattureModel>LogText}"
-                                icon="{fattureModel>LogIcon}"
-                                state="{fattureModel>LogState}"
+                                text="{mainService>esito}"
+                                icon="{path: 'mainService>esito', formatter: '.formatter.statusIcon'}"
+                                state="{path: 'mainService>esito', formatter: '.formatter.statusState'}"
                             />
-                            <Text text="{fattureModel>TipologiaErrore}" />
+                            <Text text="{mainService>message}" />
                             <HBox>
                                 <Button
                                     icon="sap-icon://show"

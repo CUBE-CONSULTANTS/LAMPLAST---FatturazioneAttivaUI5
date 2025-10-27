@@ -80,7 +80,7 @@
                     "bundleName": "com.zeim.fatturazioneattiva.i18n.i18n"
                 }
             },
-            "": {
+            "mainService": {
                 "dataSource": "mainService",
                 "preload": true,
                 "settings": {

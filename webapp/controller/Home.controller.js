@@ -18,15 +18,21 @@ sap.ui.define([
     return Controller.extend("com.zeim.fatturazioneattiva.controller.Home", {
 
         onInit: function () {
-            this._updateCounts();
 
+            var oMainModel = this.getOwnerComponent().getModel("mainService");
             var oMultiInput = this.byId("multiInput");
             this._oMultiInput = oMultiInput;
 
             //this.byId("multiInput").addValidator(this._onMultiInputValidate.bind(this));
 
             var oViewModel = new sap.ui.model.json.JSONModel({
-                currentFlow: "sd"
+                currentFlow: "sd",
+                counts: {
+                    All: 0,
+                    Processed: 0,
+                    Working: 0,
+                    Error: 0
+                }
             });
             this.getView().setModel(oViewModel, "viewModel");
 
@@ -46,27 +52,32 @@ sap.ui.define([
                 this._filters.tipoFatturaFI.setVisibleInFilterBar(false);
             }
 
+            oMainModel.attachRequestCompleted(this._updateCounts.bind(this));
         },
 
         _updateCounts: function () {
-            var oModel = this.getOwnerComponent().getModel("fattureModel");
-            var aFatture = oModel.getProperty("/Fatture");
+            const oModel = this.getOwnerComponent().getModel("mainService");
+            const oViewModel = this.getView().getModel("viewModel");
 
-            var oCounts = {
-                All: aFatture.length,
-                Processed: aFatture.filter(function (fattura) {
-                    return fattura.LogState === "Success";
-                }).length,
-                Working: aFatture.filter(function (fattura) {
-                    return fattura.LogState === "Warning";
-                }).length,
-                Error: aFatture.filter(function (fattura) {
-                    return fattura.LogState === "Error";
-                }).length
-            };
+            oModel.read("/zeim_att_getlist", {
+                success: (oData) => {
+                    const aFatture = oData.results || [];
 
-            oModel.setProperty("/Counts", oCounts);
+                    const oCounts = {
+                        All: aFatture.length,
+                        Processed: aFatture.filter(f => f.esito?.toLowerCase().includes("processato")).length,
+                        Working: aFatture.filter(f => f.esito?.toLowerCase().includes("da processare")).length,
+                        Error: aFatture.filter(f => f.esito?.toLowerCase().includes("errore")).length
+                    };
+
+                    oViewModel.setProperty("/counts", oCounts);
+                },
+                error: (err) => {
+                    console.error("Errore nel recupero dei conteggi:", err);
+                }
+            });
         },
+
 
         onSegmentChange: function (oEvent) {
             const sKey = oEvent.getParameter("item").getKey();
@@ -167,31 +178,46 @@ sap.ui.define([
         },
 
         onShowAdvancedPDFDialog: async function (oEvent) {
-            const oContext = oEvent.getSource().getBindingContext("fattureModel");
-            const sFlow = this.getView().getModel("viewModel").getProperty("/currentFlow"); // "sd" o "fi"
-            const oDataModel = this.getOwnerComponent().getModel(); // OData model
+            // ✅ Usa il binding context corretto (mainService)
+            const oContext = oEvent.getSource().getBindingContext("mainService");
+            if (!oContext) {
+                sap.m.MessageToast.show("Impossibile determinare il contesto della riga selezionata.");
+                return;
+            }
+
             const oData = oContext.getObject();
+            const sFlow = this.getView().getModel("viewModel").getProperty("/currentFlow"); // "sd" o "fi"
+            const oDataModel = this.getOwnerComponent().getModel("mainService"); // ✅ OData principale
 
             let sPath = "";
 
+            // === FLUSSO SD ===
             if (sFlow === "sd") {
-                // Flusso SD → usa BillingDocument
-                const sBillingDocument = oData.NumeroDoc || oData.BillingDocument;
-                sPath = `/ZEIM_GetPDFBillingDocument('90000219')`;
-            } else if (sFlow === "fi") {
-                // Flusso FI → usa bukrs, belnr, gjahr
-                const sBukrs = oData.Societa || oData.bukrs;
-                const sBelnr = oData.NumeroDoc || oData.belnr;
-                const sGjahr = oData.Esercizio || oData.gjahr;
+                const sBillingDocument = oData.vbeln; // ✅ campo corretto OData
+                if (!sBillingDocument) {
+                    sap.m.MessageToast.show("Numero documento mancante (vbeln).");
+                    return;
+                }
+                // ✅ costruisci dinamicamente il path per la function import
+                sPath = `/ZEIM_GetPDFBillingDocument('${sBillingDocument}')`;
+            }
+
+            // === FLUSSO FI ===
+            else if (sFlow === "fi") {
+                const sBukrs = oData.bukrs;
+                const sBelnr = oData.belnr;
+                const sGjahr = oData.gjahr;
 
                 if (!sBukrs || !sBelnr || !sGjahr) {
                     sap.m.MessageBox.warning("Dati incompleti per la chiamata PDF FI (bukrs/belnr/gjahr mancanti).");
                     return;
                 }
 
-                sPath = `/ZEIM_GetPDFAccountingDocument(bukrs='1000',belnr='123456',gjahr='2024')`;
+                // ✅ path dinamico
+                sPath = `/ZEIM_GetPDFAccountingDocument(bukrs='${sBukrs}',belnr='${sBelnr}',gjahr='${sGjahr}')`;
             }
 
+            // === CONTROLLO PATH ===
             if (!sPath) {
                 sap.m.MessageToast.show("Impossibile determinare il percorso per la chiamata PDF.");
                 return;
@@ -214,6 +240,7 @@ sap.ui.define([
                     return;
                 }
 
+                // ✅ Creazione iframe per anteprima PDF
                 const pdfDataUrl = "data:application/pdf;base64," + oResponse.base64;
                 const oIframe = new sap.ui.core.HTML({
                     content: `<iframe src="${pdfDataUrl}" width="100%" height="700px" style="border:none;"></iframe>`
@@ -245,22 +272,37 @@ sap.ui.define([
         },
 
 
-
         onIconTabSelect: function (oEvent) {
-            var sKey = oEvent.getParameter("key");
-            var oTable = this.byId("idTableFatture");
-            var oBinding = oTable.getBinding("items");
-            var aFilters = [];
+            const sKey = oEvent.getParameter("key");
+            const oTable = this.byId("idTableFatture");
+            const oBinding = oTable.getBinding("items");
 
-            if (sKey === "processed") {
-                aFilters.push(new sap.ui.model.Filter("LogState", "EQ", "Success"));
-            } else if (sKey === "working") {
-                aFilters.push(new sap.ui.model.Filter("LogState", "EQ", "Warning"));
-            } else if (sKey === "error") {
-                aFilters.push(new sap.ui.model.Filter("LogState", "EQ", "Error"));
+            if (!oBinding) return;
+
+            let aFilters = [];
+
+            switch (sKey) {
+                case "Processed":
+                    aFilters.push(new sap.ui.model.Filter("esito", sap.ui.model.FilterOperator.Contains, "Processato"));
+                    break;
+                case "Working":
+                    aFilters.push(new sap.ui.model.Filter("esito", sap.ui.model.FilterOperator.Contains, "Da processare"));
+                    break;
+                case "Error":
+                    aFilters.push(new sap.ui.model.Filter("esito", sap.ui.model.FilterOperator.Contains, "Errore"));
+                    break;
+                case "All":
+                default:
+                    break;
             }
+
             oBinding.filter(aFilters);
+
+            // Aggiorna anche i conteggi ogni volta che si cambia tab
+            this._updateCounts();
         },
+
+
 
         onSelectionChange: function (oEvent) {
             var oTable = this.byId("idTableFatture");
@@ -421,7 +463,126 @@ sap.ui.define([
                     }
                 );
             }.bind(this));
+        },
+
+
+        formatter: {
+            statusState: function (sEsito) {
+                if (!sEsito) return "None";
+                sEsito = sEsito.toLowerCase();
+
+                if (sEsito.includes("processato")) return "Success";
+                if (sEsito.includes("errore")) return "Error";
+                if (sEsito.includes("da processare")) return "Warning";
+                return "None";
+            },
+
+            statusIcon: function (sEsito) {
+                if (!sEsito) return "sap-icon://question-mark";
+                sEsito = sEsito.toLowerCase();
+
+                if (sEsito.includes("processato")) return "sap-icon://accept";
+                if (sEsito.includes("errore")) return "sap-icon://error";
+                if (sEsito.includes("da processare")) return "sap-icon://pending";
+                return "sap-icon://question-mark";
+            },
+
+
+            /**
+ * Formatter per la data budat
+ * Converte "2025-10-17T00:00:00" → "17/10/2025"
+ */
+            formatDate: function (sDate) {
+                if (!sDate) return "";
+                const oDate = new Date(sDate);
+                const oFormat = sap.ui.core.format.DateFormat.getDateInstance({ pattern: "dd/MM/yyyy" });
+                return oFormat.format(oDate);
+            }
+        },
+
+
+
+
+        onNavToCliente: async function (oEvent) {
+            try {
+                const oContext = oEvent.getSource().getBindingContext("mainService");
+                if (!oContext) {
+                    sap.m.MessageToast.show("Impossibile determinare il cliente selezionato.");
+                    return;
+                }
+
+                const oData = oContext.getObject();
+                const sKunnr = oData.kunnr;
+                if (!sKunnr) {
+                    sap.m.MessageToast.show("Cliente (KUNNR) non disponibile.");
+                    return;
+                }
+
+                const Navigation = await sap.ushell.Container.getServiceAsync("Navigation");
+
+                const sHref = await Navigation.getHref({
+                    target: {
+                        semanticObject: "Customer",
+                        action: "manage"
+                    },
+                    params: {
+                        Customer: sKunnr
+                    }
+                });
+
+                console.log(" Navigazione FLP:", sHref);
+
+                window.open(sHref, "_blank");
+            } catch (err) {
+                console.error("Errore nella navigazione Cross-App:", err);
+                sap.m.MessageBox.error("Impossibile aprire l'app Customer - Manage.");
+            }
+        },
+
+
+        onNavToDocumento: async function (oEvent) {
+            try {
+                const oContext = oEvent.getSource().getBindingContext("mainService");
+                if (!oContext) {
+                    sap.m.MessageToast.show("Impossibile determinare il cliente selezionato.");
+                    return;
+                }
+
+                const oData = oContext.getObject();
+                const belnr = oData.belnr;
+                const bukrs = oData.bukrs;
+                const gjahr = oData.gjahr
+                if (!sKunnr) {
+                    sap.m.MessageToast.show("Nr documento non disponibile.");
+                    return;
+                }
+
+                const Navigation = await sap.ushell.Container.getServiceAsync("Navigation");
+
+                const sHref = await Navigation.getHref({
+                    target: {
+                        semanticObject: "AccountingDocument",
+                        action: "displayV2"
+                    },
+                    params: {
+                        AccountingDocument: belnr,
+                        CompanyCode: bukrs,
+                        FiscalYear: gjahr
+
+                    }
+                });
+
+                console.log(" Navigazione FLP:", sHref);
+
+                window.open(sHref, "_blank");
+            } catch (err) {
+                console.error("Errore nella navigazione Cross-App:", err);
+                sap.m.MessageBox.error("Impossibile aprire l'app Customer - Manage.");
+            }
         }
+
+
+
 
 
 
