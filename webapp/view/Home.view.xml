@@ -115,7 +115,7 @@
                                 width="300px"
                                 forceSelection="false"
                                 items="{
-                                path: 'MCOrgCommerciale>/C_SalesOrgVHTemp'}"
+                                path: 'MCOrgCommerciale>/ZR_EIM_SALESORGANIZATION'}"
                             >
                                 <core:Item
                                     key="{MCOrgCommerciale>SalesOrganization}"
@@ -124,6 +124,23 @@
                             </Select>
                         </fb:control>
                     </fb:FilterGroupItem>
+                    <fb:FilterGroupItem
+                        name="Data"
+                        label="Data Registrazione"
+                        groupName="General"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <DateRangeSelection
+                                id="dateRangePicker"
+                                delimiter=" - "
+                                width="300px"
+                                displayFormat="dd/MM/yyyy"
+                                valueFormat="yyyy-MM-dd"
+                            />
+                        </fb:control>
+                    </fb:FilterGroupItem>
+
                     <fb:FilterGroupItem
                         name="Società"
                         label="Società"
@@ -252,7 +269,6 @@
                 id="idTableFatture"
                 inset="false"
                 mode="MultiSelect"
-                items="{mainService>/zeim_att_getlist}"
                 selectionChange=".onSelectionChange"
             >
                 <columns>
@@ -341,11 +357,11 @@
                                     type="Transparent"
                                     press=".onViewXML"
                                 />
-                                <Button
+                                <!-- <Button
                                     icon="sap-icon://attachment"
                                     type="Transparent"
                                     press=".onViewXML"
-                                />
+                                /> -->
                                 <Button
                                     text="Visualizza Fattura"
                                     type="Transparent"
