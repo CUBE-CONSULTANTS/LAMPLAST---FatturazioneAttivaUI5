@@ -10,8 +10,7 @@
     xmlns:vh="sap.ui.comp.valuehelpdialog"
 >
     <Page
-        id="page"
-        title="{i18n>title}"
+        showHeader="false"
     >
         <Panel>
             <FlexBox
@@ -62,7 +61,7 @@
                                 showValueHelp="true"
                                 valueHelpRequest=".onValueHelpClienti"
                                 showSuggestion="true"
-                                suggestionItems="{path: 'Clienti>/I_Customer_VH'}"
+                                suggestionItems="{path: 'Clienti>/I_Customer'}"
                                 data-model="Clienti"
                                 data-key="Customer"
                                 data-desc="OrganizationBPName1"
@@ -221,10 +220,7 @@
             </fb:FilterBar>
         </Panel>
 
-        <Panel
-            headerText="Elenco Fatture"
-            width="100%"
-        >
+
             <IconTabBar
                 id="idIconTabBar"
                 select=".onIconTabSelect"
@@ -265,114 +261,117 @@
                 </items>
             </IconTabBar>
 
-            <Table
-                id="idTableFatture"
-                inset="false"
-                mode="MultiSelect"
-                selectionChange=".onSelectionChange"
-            >
-                <columns>
-                    <Column width="3rem">
-                        <Text text="Società" />
-                    </Column>
-                    <Column width="4rem">
-                        <Text text="Cliente" />
-                    </Column>
-                    <Column width="8rem">
-                        <Text text="Nominativo" />
-                    </Column>
-                    <Column width="6rem">
-                        <Text text="P.IVA" />
-                    </Column>
-                    <Column width="6rem">
-                        <Text text="C.F." />
-                    </Column>
-                    <Column width="4rem">
-                        <Text text="Doc Fatt" />
-                    </Column>
-                    <Column width="5rem">
-                        <Text text="N° Doc" />
-                    </Column>
-                    <Column width="6rem">
-                        <Text text="Data Registrazione" />
-                    </Column>
-                    <Column width="5rem">
-                        <Text text="Esercizio" />
-                    </Column>
-                    <Column width="6rem">
-                        <Text text="Tot Fattura" />
-                    </Column>
-                    <Column width="5rem">
-                        <Text text="CD Univoco" />
-                    </Column>
-                    <Column width="4rem">
-                        <Text text="PEC" />
-                    </Column>
-                    <Column width="6rem">
-                        <Text text="Esito" />
-                    </Column>
-                    <Column width="7rem">
-                        <Text text="Messaggio" />
-                    </Column>
-                    <Column width="8rem">
-                        <Text text="Azioni" />
-                    </Column>
-                </columns>
+                <Table
+                    id="idTableFatture"
+                    inset="false"
+                    mode="MultiSelect"
+                    selectionChange=".onSelectionChange"
+                    growing="true"
+                    growingThreshold="50"
+                    sticky="ColumnHeaders"
+                >
+                    <columns>
+                        <Column width="3rem">
+                            <Text text="Società" />
+                        </Column>
+                        <Column width="4rem">
+                            <Text text="Cliente" />
+                        </Column>
+                        <Column width="8rem">
+                            <Text text="Nominativo" />
+                        </Column>
+                        <Column width="6rem">
+                            <Text text="P.IVA" />
+                        </Column>
+                        <Column width="6rem">
+                            <Text text="C.F." />
+                        </Column>
+                        <Column width="4rem">
+                            <Text text="Doc Fatt" />
+                        </Column>
+                        <Column width="5rem">
+                            <Text text="N° Doc" />
+                        </Column>
+                        <Column width="6rem">
+                            <Text text="Data Registrazione" />
+                        </Column>
+                        <Column width="5rem">
+                            <Text text="Esercizio" />
+                        </Column>
+                        <Column width="6rem">
+                            <Text text="Tot Fattura" />
+                        </Column>
+                        <Column width="5rem">
+                            <Text text="CD Univoco" />
+                        </Column>
+                        <Column width="4rem">
+                            <Text text="PEC" />
+                        </Column>
+                        <Column width="6rem">
+                            <Text text="Esito" />
+                        </Column>
+                        <Column width="7rem">
+                            <Text text="Messaggio" />
+                        </Column>
+                        <Column width="8rem">
+                            <Text text="Azioni" />
+                        </Column>
+                    </columns>
 
-                <items>
-                    <ColumnListItem>
-                        <cells>
-                            <Text text="{mainService>bukrs}" />
-                            <Link
-                                text="{mainService>kunnr}"
-                                press=".onNavToCliente"
-                            />
-                            <Text text="{mainService>CustomerName}" />
-                            <Text text="{mainService>stcd2}" />
-                            <Text text="{mainService>stcd1}" />
-                            <Text text="{mainService>vbeln}" />
-                            <Link
-                                text="{mainService>belnr}"
-                                press=".onNavToDocumento"
-                            />
-                            <Text
-                                text="{path: 'mainService>budat', formatter: '.formatter.formatDate'}"
-                            />
-                            <Text text="{mainService>gjahr}" />
-                            <ObjectNumber
-                                number="{mainService>wrbtr}"
-                                unit="{mainService>waers}"
-                            />
-                            <Text text="{fattureModel>CDUnivoco}" />
-                            <Text text="{mainService>PEC}" />
-                            <ObjectStatus
-                                text="{mainService>esito}"
-                                icon="{path: 'mainService>esito', formatter: '.formatter.statusIcon'}"
-                                state="{path: 'mainService>esito', formatter: '.formatter.statusState'}"
-                            />
-                            <Text text="{mainService>message}" />
-                            <HBox>
-                                <Button
-                                    icon="sap-icon://show"
-                                    type="Transparent"
-                                    press=".onViewXML"
+                    <items>
+                        <ColumnListItem>
+                            <cells>
+                                <Text text="{mainService>bukrs}" />
+                                <Link
+                                    text="{mainService>kunnr}"
+                                    press=".onNavToCliente"
                                 />
-                                <!-- <Button
+                                <Text text="{mainService>CustomerName}" />
+                                <Text text="{mainService>stcd2}" />
+                                <Text text="{mainService>stcd1}" />
+                                <Text text="{mainService>vbeln}" />
+                                <Link
+                                    text="{mainService>belnr}"
+                                    press=".onNavToDocumento"
+                                />
+                                <Text
+                                    text="{path: 'mainService>budat', formatter: '.formatter.formatDate'}"
+                                />
+                                <Text text="{mainService>gjahr}" />
+                                <ObjectNumber
+                                    number="{mainService>wrbtr}"
+                                    unit="{mainService>waers}"
+                                />
+                                <Text text="{mainService>cd_univoco}" />
+                                <Text text="{mainService>PEC}" />
+                                <ObjectStatus
+                                    text="{mainService>esito}"
+                                    icon="{path: 'mainService>esito', formatter: '.formatter.statusIcon'}"
+                                    state="{path: 'mainService>esito', formatter: '.formatter.statusState'}"
+                                />
+                                <Text text="{mainService>message}" />
+                                <HBox>
+                                    <Button
+                                        icon="sap-icon://show"
+                                        type="Transparent"
+                                        press=".onViewXML"
+                                    />
+                                    <!-- <Button
                                     icon="sap-icon://attachment"
                                     type="Transparent"
                                     press=".onViewXML"
                                 /> -->
-                                <Button
-                                    text="Visualizza Fattura"
-                                    type="Transparent"
-                                    press=".onShowAdvancedPDFDialog"
-                                />
-                            </HBox>
-                        </cells>
-                    </ColumnListItem>
-                </items>
-            </Table>
-        </Panel>
+                                    <Button
+                                        text="Visualizza Fattura"
+                                        type="Transparent"
+                                        press=".onShowAdvancedPDFDialog"
+                                    />
+                                </HBox>
+                            </cells>
+                        </ColumnListItem>
+                    </items>
+                </Table>
+
 
         <footer>
             <OverflowToolbar>

@@ -33,10 +33,16 @@
                     "action": "display",
                     "title": "{{flpTitle}}",
                     "subTitle": "{{flpSubtitle}}",
+                    "icon": "sap-icon://activate",
                     "signature": {
                         "parameters": {},
                         "additionalParameters": "allowed"
-                    }
+                    },
+                    "indicatorDataSource": {
+                        "dataSource": "mainService",
+                        "path": "zeim_att_getlist(FLUSSO='S')/Set/$count",
+                        "refresh": 1000
+                }
                 }
             }
         }

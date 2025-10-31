@@ -64,25 +64,14 @@ sap.ui.define([
     openValueHelp: function (oController, sFragmentName, sModelName, sEntityPath, oSettings) {
       Fragment.load({ name: sFragmentName, controller: oController }).then(function (oDialog) {
 
-        // --- basic search
-        const oBasicSearch = new SearchField({
-          width: "100%",
-          liveChange: (e) =>
-            _applyFilter(oDialog, e.getParameter("newValue"), oSettings.filterProps, {
-              maxKeyLength: oSettings.maxKeyLength,
-              keyProp: oSettings.keyProp,
-              onAfterUpdate: fnReselect // lo definiamo sotto
-            })
-        });
+
 
         oDialog.setKey(oSettings.key);
         oDialog.setDescriptionKey(oSettings.desc);
         oDialog.setRangeKeyFields([{ key: oSettings.key, label: oSettings.key, type: "string" }]);
         oDialog.setTokenDisplayBehaviour("descriptionAndId");
 
-        const oFilterBar = oDialog.getFilterBar();
-        oFilterBar.setFilterBarExpanded(false);
-        oFilterBar.setBasicSearch(oBasicSearch);
+
 
         // --- tabella
         oDialog.getTableAsync().then(function (oTable) {
@@ -107,6 +96,21 @@ sap.ui.define([
             // delay minimo per essere *dopo* il rendering righe
             setTimeout(() => _reselectRows(oTable, aSelectedKeys, oSettings.key), 0);
           }
+
+          // --- basic search
+          const oBasicSearch = new SearchField({
+            width: "100%",
+            liveChange: (e) =>
+              _applyFilter(oDialog, e.getParameter("newValue"), oSettings.filterProps, {
+                maxKeyLength: oSettings.maxKeyLength,
+                keyProp: oSettings.keyProp,
+                onAfterUpdate: fnReselect // lo definiamo sotto
+              })
+          });
+
+          const oFilterBar = oDialog.getFilterBar();
+          oFilterBar.setFilterBarExpanded(false);
+          oFilterBar.setBasicSearch(oBasicSearch);
 
           // 1) prima popolazione: quando arrivano i dati iniziali
           const oBinding = oTable.getBinding("rows");

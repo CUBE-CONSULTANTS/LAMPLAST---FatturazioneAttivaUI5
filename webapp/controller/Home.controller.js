@@ -6,20 +6,18 @@ sap.ui.define([
     "sap/m/Button",
     "sap/m/SearchField",
     "sap/ui/core/BusyIndicator",
-    "sap/ui/model/type/String",
     "sap/m/Token",
     "sap/ui/comp/library",
     "sap/ui/table/Column",
     "sap/m/Label",
     "sap/m/Text"
-], function (Controller, CodeEditor, Fragment, Dialog, Button, SearchField, BusyIndicator, TypeString, Token, compLibrary, UIColumn, Label, Text) {
+], function (Controller, CodeEditor, Fragment, Dialog, Button, SearchField, BusyIndicator, Token, compLibrary, UIColumn, Label, Text) {
     "use strict";
 
     return Controller.extend("com.zeim.fatturazioneattiva.controller.Home", {
 
         onInit: function () {
 
-            var oMainModel = this.getOwnerComponent().getModel("mainService");
             var oMultiInput = this.byId("multiInput");
             this._oMultiInput = oMultiInput;
 
@@ -57,7 +55,6 @@ sap.ui.define([
 
         _bindTableByFlow: function (sFlowKey) {
             const oTable = this.byId("idTableFatture");
-            const oModel = this.getOwnerComponent().getModel("mainService");
 
             const sFlussoParam = sFlowKey === "fi" ? "F" : "S";
             const sPath = `/zeim_att_getlist(FLUSSO='${sFlussoParam}')/Set`;
@@ -69,8 +66,8 @@ sap.ui.define([
                 model: "mainService",
                 template: oTemplate,
                 events: {
-                    dataReceived: (oEvent) => {
-                        // 🔹 Aggiorna i contatori appena arrivano i dati
+                    dataReceived: () => {
+                        // Aggiorna i contatori appena arrivano i dati
                         this._updateCounts();
                     }
                 }
@@ -125,84 +122,102 @@ sap.ui.define([
 
 
 
-        onElaborazioneChange: function (oEvent) {
-            var i = oEvent.getSource().getSelectedIndex();
-            var bEnable = (i === 3 || i === 4);
-            this.byId("rbRinomina").setEnabled(bEnable);
-            this.byId("rbMantieni").setEnabled(bEnable);
-        },
+onViewXML: function (oEvent) {
+    // Recupera il contesto della riga dal modello OData principale
+    const oContext = oEvent.getSource().getBindingContext("mainService");
+    if (!oContext) {
+        sap.m.MessageToast.show("Impossibile determinare il contesto della fattura selezionata.");
+        return;
+    }
 
-        onCartellaChange: function () {
-            var bIsServer = this.byId("rbServer").getSelected();
-            this.byId("idPercorsoInput").setEnabled(bIsServer);
-        },
+    const oData = oContext.getObject();
 
-        onViewXML: function (oEvent) {
-            var oContext = oEvent.getSource().getBindingContext("fattureModel");
-            var sXmlContent = oContext ? oContext.getProperty("XmlContent") : "<xml/>";
+    // Ottieni il contenuto XML (se disponibile nella riga)
+    const sXmlContent = oData?.XmlContent || "<xml/>";
 
-            var oCodeEditor = new sap.ui.codeeditor.CodeEditor({
-                type: "xml",
-                value: sXmlContent,
-                height: "400px",
-                width: "100%",
-                editable: false,
-                lineNumbers: true,
-                syntaxHints: true
-            });
+    // Editor di sola lettura
+    const oCodeEditor = new sap.ui.codeeditor.CodeEditor({
+        type: "xml",
+        value: sXmlContent,
+        height: "400px",
+        width: "100%",
+        editable: false,
+        lineNumbers: true,
+        syntaxHints: true
+    });
 
-            var oDialog = new sap.m.Dialog({
-                title: "Visualizza XML",
-                contentWidth: "80%",
-                contentHeight: "60%",
-                resizable: true,
-                draggable: true,
-                content: [oCodeEditor],
-                buttons: [
-                    new sap.m.Button({
-                        text: "Salva",
-                        type: "Emphasized",
-                        press: function () {
-                            var oNameInput = new sap.m.Input({ placeholder: "Nome file", value: "fattura.xml" });
-                            var oPopup = new sap.m.Dialog({
-                                title: "Salva come...",
-                                content: [oNameInput],
-                                beginButton: new sap.m.Button({
-                                    text: "Conferma",
-                                    type: "Emphasized",
-                                    press: function () {
-                                        var sFileName = oNameInput.getValue() || "file.xml";
-                                        var sContent = oCodeEditor.getValue();
-                                        var blob = new Blob([sContent], { type: "application/xml" });
-                                        var link = document.createElement("a");
-                                        link.href = window.URL.createObjectURL(blob);
-                                        link.download = sFileName;
-                                        link.click();
-                                        oPopup.close();
-                                    }
-                                }),
-                                endButton: new sap.m.Button({
-                                    text: "Annulla",
-                                    press: function () { oPopup.close(); }
-                                }),
-                                afterClose: function () { oPopup.destroy(); }
-                            });
-                            oPopup.open();
-                        }
-                    }),
-                    new sap.m.Button({
-                        text: "Chiudi",
-                        press: function () { oDialog.close(); }
-                    })
-                ],
-                afterClose: function () { oDialog.destroy(); }
-            });
+    // Dialog principale di visualizzazione XML
+    const oDialog = new sap.m.Dialog({
+        title: "Visualizza XML",
+        contentWidth: "80%",
+        contentHeight: "60%",
+        resizable: true,
+        draggable: true,
+        content: [oCodeEditor],
+        buttons: [
+            new sap.m.Button({
+                text: "Salva",
+                type: "Emphasized",
+                press: function () {
+                    // === Nome file dinamico ===
+                    const sBukrs = oData.bukrs || "BUKRS";
+                    const sVbeln = oData.vbeln || "VBELN";
+                    const sGjahr = oData.gjahr || "GJAHR";
+                    const sDefaultName = `${sBukrs}_${sVbeln}_${sGjahr}.xml`;
 
-            oDialog.open();
-        },
+                    // === Dialog secondario “Salva come” ===
+                    const oNameInput = new sap.m.Input({
+                        placeholder: "Nome file",
+                        value: sDefaultName,
+                        width: "90%"
+                    }).addStyleClass("sapUiSmallMarginBeginEnd");
+
+                    const oPopup = new sap.m.Dialog({
+                        title: "Salva come...",
+                        content: [oNameInput],
+                        beginButton: new sap.m.Button({
+                            text: "Conferma",
+                            type: "Emphasized",
+                            press: function () {
+                                const sFileName = oNameInput.getValue() || sDefaultName;
+                                const sContent = oCodeEditor.getValue();
+
+                                const blob = new Blob([sContent], { type: "application/xml" });
+                                const link = document.createElement("a");
+                                link.href = window.URL.createObjectURL(blob);
+                                link.download = sFileName;
+                                link.click();
+
+                                oPopup.close();
+                            }
+                        }),
+                        endButton: new sap.m.Button({
+                            text: "Annulla",
+                            press: function () { oPopup.close(); }
+                        }),
+                        afterClose: function () { oPopup.destroy(); }
+                    });
+
+                    // 🔹 Focus automatico sull’input
+                    oPopup.attachAfterOpen(() => oNameInput.focus());
+                    oPopup.open();
+                }
+            }),
+            new sap.m.Button({
+                text: "Chiudi",
+                press: function () { oDialog.close(); }
+            })
+        ],
+        afterClose: function () { oDialog.destroy(); }
+    });
+
+    oDialog.open();
+},
+
+
 
         onShowAdvancedPDFDialog: async function (oEvent) {
-            // ✅ Usa il binding context corretto (mainService)
+            // Usa il binding context corretto (mainService)
             const oContext = oEvent.getSource().getBindingContext("mainService");
             if (!oContext) {
                 sap.m.MessageToast.show("Impossibile determinare il contesto della riga selezionata.");
@@ -211,18 +226,18 @@ sap.ui.define([
 
             const oData = oContext.getObject();
             const sFlow = this.getView().getModel("viewModel").getProperty("/currentFlow"); // "sd" o "fi"
-            const oDataModel = this.getOwnerComponent().getModel("mainService"); // ✅ OData principale
+            const oDataModel = this.getOwnerComponent().getModel("mainService"); // OData principale
 
             let sPath = "";
 
             // === FLUSSO SD ===
             if (sFlow === "sd") {
-                const sBillingDocument = oData.vbeln; // ✅ campo corretto OData
+                const sBillingDocument = oData.vbeln; // campo corretto OData
                 if (!sBillingDocument) {
                     sap.m.MessageToast.show("Numero documento mancante (vbeln).");
                     return;
                 }
-                // ✅ costruisci dinamicamente il path per la function import
+                // costruisci dinamicamente il path per la function import
                 sPath = `/ZEIM_GetPDFBillingDocument('${sBillingDocument}')`;
             }
 
@@ -237,7 +252,7 @@ sap.ui.define([
                     return;
                 }
 
-                // ✅ path dinamico
+                // path dinamico
                 sPath = `/ZEIM_GetPDFAccountingDocument(bukrs='${sBukrs}',belnr='${sBelnr}',gjahr='${sGjahr}')`;
             }
 
@@ -264,7 +279,7 @@ sap.ui.define([
                     return;
                 }
 
-                // ✅ Creazione iframe per anteprima PDF
+                // Creazione iframe per anteprima PDF
                 const pdfDataUrl = "data:application/pdf;base64," + oResponse.base64;
                 const oIframe = new sap.ui.core.HTML({
                     content: `<iframe src="${pdfDataUrl}" width="100%" height="700px" style="border:none;"></iframe>`
@@ -300,31 +315,32 @@ sap.ui.define([
             const sKey = oEvent.getParameter("key");
             const oTable = this.byId("idTableFatture");
             const oBinding = oTable.getBinding("items");
-
             if (!oBinding) return;
 
-            let aFilters = [];
-
+            // costruisco il filtro per la colonna "esito"
+            let aTabFilters = [];
             switch (sKey) {
                 case "Processed":
-                    aFilters.push(new sap.ui.model.Filter("esito", sap.ui.model.FilterOperator.Contains, "Processato"));
+                    aTabFilters = [new sap.ui.model.Filter("esito", sap.ui.model.FilterOperator.EQ, "Processato")];
                     break;
                 case "Working":
-                    aFilters.push(new sap.ui.model.Filter("esito", sap.ui.model.FilterOperator.Contains, "Da processare"));
+                    aTabFilters = [new sap.ui.model.Filter("esito", sap.ui.model.FilterOperator.EQ, "Da processare")];
                     break;
                 case "Error":
-                    aFilters.push(new sap.ui.model.Filter("esito", sap.ui.model.FilterOperator.Contains, "Errore"));
+                    aTabFilters = [new sap.ui.model.Filter("esito", sap.ui.model.FilterOperator.EQ, "Errore")];
                     break;
                 case "All":
                 default:
-                    break;
+                    aTabFilters = []; // rimuove filtro tab
             }
 
-            oBinding.filter(aFilters);
+            // ✅ Applica COME Application filter (server-side), così funziona con growing
+            oBinding.filter(aTabFilters, sap.ui.model.FilterType.Application);
 
-            // Aggiorna anche i conteggi ogni volta che si cambia tab
-            this._updateCounts();
+            // aggiorna i contatori dopo il nuovo caricamento
+            oBinding.attachEventOnce("dataReceived", this._updateCounts.bind(this));
         },
+
 
 
 
@@ -512,10 +528,6 @@ sap.ui.define([
             },
 
 
-            /**
- * Formatter per la data budat
- * Converte "2025-10-17T00:00:00" → "17/10/2025"
- */
             formatDate: function (sDate) {
                 if (!sDate) return "";
                 const oDate = new Date(sDate);
@@ -542,9 +554,9 @@ sap.ui.define([
                     return;
                 }
 
-                const Navigation = await sap.ushell.Container.getServiceAsync("Navigation");
+                const oCrossAppNav = await sap.ushell.Container.getServiceAsync("CrossApplicationNavigation");
 
-                const sHref = await Navigation.getHref({
+                const sHash = oCrossAppNav.hrefForExternal({
                     target: {
                         semanticObject: "Customer",
                         action: "manage"
@@ -554,9 +566,12 @@ sap.ui.define([
                     }
                 });
 
-                console.log(" Navigazione FLP:", sHref);
+                const sEntityPath = `/C_BusinessPartnerCustomer(BusinessPartner='${sKunnr}',DraftUUID=guid'00000000-0000-0000-0000-000000000000',IsActiveEntity=true)`;
 
-                window.open(sHref, "_blank");
+                const sFullUrl = window.location.origin + "/ui" + sHash + "&sap-app-origin-hint=&" + sEntityPath;
+
+                window.open(sFullUrl, "_blank");
+
             } catch (err) {
                 console.error("Errore nella navigazione Cross-App:", err);
                 sap.m.MessageBox.error("Impossibile aprire l'app Customer - Manage.");
@@ -576,10 +591,6 @@ sap.ui.define([
                 const belnr = oData.belnr;
                 const bukrs = oData.bukrs;
                 const gjahr = oData.gjahr
-                if (!sKunnr) {
-                    sap.m.MessageToast.show("Nr documento non disponibile.");
-                    return;
-                }
 
                 const Navigation = await sap.ushell.Container.getServiceAsync("Navigation");
 
@@ -601,7 +612,6 @@ sap.ui.define([
                 window.open(sHref, "_blank");
             } catch (err) {
                 console.error("Errore nella navigazione Cross-App:", err);
-                sap.m.MessageBox.error("Impossibile aprire l'app Customer - Manage.");
             }
         },
 
