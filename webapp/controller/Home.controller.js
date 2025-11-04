@@ -54,28 +54,62 @@ sap.ui.define([
                 this._filters.tipoFatturaFI.setVisibleInFilterBar(false);
             }
 
-            this._bindTableByFlow("sd");
+            const aCurrent = this.getView().getModel("fattureModel").getProperty("/results") || [];
+            const iSkip = aCurrent.length;
+            this._bindTableByFlow("sd", 100, iSkip);
         },
 
-        _bindTableByFlow: function (sFlowKey) {
+        _bindTableByFlow: function (sFlowKey, bReset = true) {
             const oModel = this.getOwnerComponent().getModel("mainService");
             const oFattureModel = this.getView().getModel("fattureModel");
+
+            if (bReset) {
+                this._pagination = {
+                    flow: sFlowKey,
+                    top: 200,
+                    skip: 0,
+                    hasMore: true,
+                    isLoading: false
+                };
+                oFattureModel.setData({ results: [] });
+            }
+
+            if (!this._pagination.hasMore || this._pagination.isLoading) return;
 
             const sFlussoParam = sFlowKey === "fi" ? "F" : "S";
             const sPath = `/zeim_att_getlist(FLUSSO='${sFlussoParam}')/Set`;
 
+            this._pagination.isLoading = true;
             sap.ui.core.BusyIndicator.show(0);
 
             oModel.read(sPath, {
+                urlParameters: {
+                    "$top": this._pagination.top,
+                    "$skip": this._pagination.skip
+                },
                 success: (oData) => {
-                    oFattureModel.setData({ results: oData.results || [] });
+                    const aNew = oData.results || [];
+                    const aOld = oFattureModel.getProperty("/results") || [];
+                    const aMerged = aOld.concat(aNew);
+
+                    oFattureModel.setProperty("/results", aMerged);
                     this._updateCounts();
+
+                    this._pagination.skip += aNew.length;
+                    this._pagination.hasMore = aNew.length === this._pagination.top;
+                    this._pagination.isLoading = false;
+
                     sap.ui.core.BusyIndicator.hide();
+
+                    if (this._pagination.hasMore) {
+                        setTimeout(() => this._bindTableByFlow(sFlowKey, false), 50);
+                    }
                 },
                 error: (err) => {
                     console.error("Errore nel caricamento dati:", err);
-                    oFattureModel.setData({ results: [] });
                     sap.ui.core.BusyIndicator.hide();
+                    this._pagination.isLoading = false;
+                    this._pagination.hasMore = false;
                 }
             });
         },
