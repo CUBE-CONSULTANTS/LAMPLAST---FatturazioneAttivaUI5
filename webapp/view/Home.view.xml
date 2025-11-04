@@ -269,6 +269,7 @@
                     growing="true"
                     growingThreshold="50"
                     sticky="ColumnHeaders"
+                    items="{path: 'fattureModel>/results'}"
                 >
                     <columns>
                         <Column width="3rem">
@@ -321,35 +322,35 @@
                     <items>
                         <ColumnListItem>
                             <cells>
-                                <Text text="{mainService>bukrs}" />
+                                <Text text="{fattureModel>bukrs}" />
                                 <Link
-                                    text="{mainService>kunnr}"
+                                    text="{fattureModel>kunnr}"
                                     press=".onNavToCliente"
                                 />
-                                <Text text="{mainService>CustomerName}" />
-                                <Text text="{mainService>stcd2}" />
-                                <Text text="{mainService>stcd1}" />
-                                <Text text="{mainService>vbeln}" />
+                                <Text text="{fattureModel>CustomerName}" />
+                                <Text text="{fattureModel>stcd2}" />
+                                <Text text="{fattureModel>stcd1}" />
+                                <Text text="{fattureModel>vbeln}" />
                                 <Link
-                                    text="{mainService>belnr}"
+                                    text="{fattureModel>belnr}"
                                     press=".onNavToDocumento"
                                 />
                                 <Text
-                                    text="{path: 'mainService>budat', formatter: '.formatter.formatDate'}"
+                                    text="{path: 'fattureModel>budat', formatter: '.formatter.formatDate'}"
                                 />
-                                <Text text="{mainService>gjahr}" />
+                                <Text text="{fattureModel>gjahr}" />
                                 <ObjectNumber
-                                    number="{mainService>wrbtr}"
-                                    unit="{mainService>waers}"
+                                    number="{fattureModel>wrbtr}"
+                                    unit="{fattureModel>waers}"
                                 />
-                                <Text text="{mainService>cd_univoco}" />
-                                <Text text="{mainService>PEC}" />
+                                <Text text="{fattureModel>cd_univoco}" />
+                                <Text text="{fattureModel>PEC}" />
                                 <ObjectStatus
-                                    text="{mainService>esito}"
-                                    icon="{path: 'mainService>esito', formatter: '.formatter.statusIcon'}"
-                                    state="{path: 'mainService>esito', formatter: '.formatter.statusState'}"
+                                    text="{fattureModel>esito}"
+                                    icon="{path: 'fattureModel>esito', formatter: '.formatter.statusIcon'}"
+                                    state="{path: 'fattureModel>esito', formatter: '.formatter.statusState'}"
                                 />
-                                <Text text="{mainService>message}" />
+                                <Text text="{fattureModel>message}" />
                                 <HBox>
                                     <Button
                                         icon="sap-icon://show"

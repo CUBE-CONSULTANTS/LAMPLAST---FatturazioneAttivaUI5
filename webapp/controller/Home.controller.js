@@ -34,6 +34,10 @@ sap.ui.define([
             });
             this.getView().setModel(oViewModel, "viewModel");
 
+            // modello dedicato per la tabella
+            var oFattureModel = new sap.ui.model.json.JSONModel({ results: [] });
+            this.getView().setModel(oFattureModel, "fattureModel");
+
             this.oFilterBar = this.byId("filterBar");
 
             const aFGI = this.oFilterBar.getFilterGroupItems();
@@ -54,36 +58,34 @@ sap.ui.define([
         },
 
         _bindTableByFlow: function (sFlowKey) {
-            const oTable = this.byId("idTableFatture");
+            const oModel = this.getOwnerComponent().getModel("mainService");
+            const oFattureModel = this.getView().getModel("fattureModel");
 
             const sFlussoParam = sFlowKey === "fi" ? "F" : "S";
             const sPath = `/zeim_att_getlist(FLUSSO='${sFlussoParam}')/Set`;
 
-            const oTemplate = oTable.getBindingInfo("items")?.template || oTable.getItems()[0]?.clone();
+            sap.ui.core.BusyIndicator.show(0);
 
-            oTable.bindItems({
-                path: sPath,
-                model: "mainService",
-                template: oTemplate,
-                events: {
-                    dataReceived: () => {
-                        // Aggiorna i contatori appena arrivano i dati
-                        this._updateCounts();
-                    }
+            oModel.read(sPath, {
+                success: (oData) => {
+                    oFattureModel.setData({ results: oData.results || [] });
+                    this._updateCounts();
+                    sap.ui.core.BusyIndicator.hide();
+                },
+                error: (err) => {
+                    console.error("Errore nel caricamento dati:", err);
+                    oFattureModel.setData({ results: [] });
+                    sap.ui.core.BusyIndicator.hide();
                 }
             });
         },
 
 
 
+
         _updateCounts: function () {
-            const oTable = this.byId("idTableFatture");
-            if (!oTable) return;
-
-            const oBinding = oTable.getBinding("items");
-            if (!oBinding) return;
-
-            const aFatture = oBinding.getCurrentContexts().map(ctx => ctx.getObject()) || [];
+            const oFattureModel = this.getView().getModel("fattureModel");
+            const aFatture = oFattureModel.getProperty("/results") || [];
             const oViewModel = this.getView().getModel("viewModel");
 
             const oCounts = {
@@ -95,6 +97,7 @@ sap.ui.define([
 
             oViewModel.setProperty("/counts", oCounts);
         },
+
 
 
 
@@ -122,97 +125,97 @@ sap.ui.define([
 
 
 
-onViewXML: function (oEvent) {
-    // Recupera il contesto della riga dal modello OData principale
-    const oContext = oEvent.getSource().getBindingContext("mainService");
-    if (!oContext) {
-        sap.m.MessageToast.show("Impossibile determinare il contesto della fattura selezionata.");
-        return;
-    }
+        onViewXML: function (oEvent) {
+            // Recupera il contesto della riga dal modello OData principale
+            const oContext = oEvent.getSource().getBindingContext("mainService");
+            if (!oContext) {
+                sap.m.MessageToast.show("Impossibile determinare il contesto della fattura selezionata.");
+                return;
+            }
 
-    const oData = oContext.getObject();
+            const oData = oContext.getObject();
 
-    // Ottieni il contenuto XML (se disponibile nella riga)
-    const sXmlContent = oData?.XmlContent || "<xml/>";
+            // Ottieni il contenuto XML (se disponibile nella riga)
+            const sXmlContent = oData?.XmlContent || "<xml/>";
 
-    // Editor di sola lettura
-    const oCodeEditor = new sap.ui.codeeditor.CodeEditor({
-        type: "xml",
-        value: sXmlContent,
-        height: "400px",
-        width: "100%",
-        editable: false,
-        lineNumbers: true,
-        syntaxHints: true
-    });
+            // Editor di sola lettura
+            const oCodeEditor = new sap.ui.codeeditor.CodeEditor({
+                type: "xml",
+                value: sXmlContent,
+                height: "400px",
+                width: "100%",
+                editable: false,
+                lineNumbers: true,
+                syntaxHints: true
+            });
 
-    // Dialog principale di visualizzazione XML
-    const oDialog = new sap.m.Dialog({
-        title: "Visualizza XML",
-        contentWidth: "80%",
-        contentHeight: "60%",
-        resizable: true,
-        draggable: true,
-        content: [oCodeEditor],
-        buttons: [
-            new sap.m.Button({
-                text: "Salva",
-                type: "Emphasized",
-                press: function () {
-                    // === Nome file dinamico ===
-                    const sBukrs = oData.bukrs || "BUKRS";
-                    const sVbeln = oData.vbeln || "VBELN";
-                    const sGjahr = oData.gjahr || "GJAHR";
-                    const sDefaultName = `${sBukrs}_${sVbeln}_${sGjahr}.xml`;
+            // Dialog principale di visualizzazione XML
+            const oDialog = new sap.m.Dialog({
+                title: "Visualizza XML",
+                contentWidth: "80%",
+                contentHeight: "60%",
+                resizable: true,
+                draggable: true,
+                content: [oCodeEditor],
+                buttons: [
+                    new sap.m.Button({
+                        text: "Salva",
+                        type: "Emphasized",
+                        press: function () {
+                            // === Nome file dinamico ===
+                            const sBukrs = oData.bukrs || "BUKRS";
+                            const sVbeln = oData.vbeln || "VBELN";
+                            const sGjahr = oData.gjahr || "GJAHR";
+                            const sDefaultName = `${sBukrs}_${sVbeln}_${sGjahr}.xml`;
 
-                    // === Dialog secondario “Salva come” ===
-                    const oNameInput = new sap.m.Input({
-                        placeholder: "Nome file",
-                        value: sDefaultName,
-                        width: "90%"
-                    }).addStyleClass("sapUiSmallMarginBeginEnd");
+                            // === Dialog secondario “Salva come” ===
+                            const oNameInput = new sap.m.Input({
+                                placeholder: "Nome file",
+                                value: sDefaultName,
+                                width: "90%"
+                            }).addStyleClass("sapUiSmallMarginBeginEnd");
 
-                    const oPopup = new sap.m.Dialog({
-                        title: "Salva come...",
-                        content: [oNameInput],
-                        beginButton: new sap.m.Button({
-                            text: "Conferma",
-                            type: "Emphasized",
-                            press: function () {
-                                const sFileName = oNameInput.getValue() || sDefaultName;
-                                const sContent = oCodeEditor.getValue();
+                            const oPopup = new sap.m.Dialog({
+                                title: "Salva come...",
+                                content: [oNameInput],
+                                beginButton: new sap.m.Button({
+                                    text: "Conferma",
+                                    type: "Emphasized",
+                                    press: function () {
+                                        const sFileName = oNameInput.getValue() || sDefaultName;
+                                        const sContent = oCodeEditor.getValue();
 
-                                const blob = new Blob([sContent], { type: "application/xml" });
-                                const link = document.createElement("a");
-                                link.href = window.URL.createObjectURL(blob);
-                                link.download = sFileName;
-                                link.click();
+                                        const blob = new Blob([sContent], { type: "application/xml" });
+                                        const link = document.createElement("a");
+                                        link.href = window.URL.createObjectURL(blob);
+                                        link.download = sFileName;
+                                        link.click();
 
-                                oPopup.close();
-                            }
-                        }),
-                        endButton: new sap.m.Button({
-                            text: "Annulla",
-                            press: function () { oPopup.close(); }
-                        }),
-                        afterClose: function () { oPopup.destroy(); }
-                    });
+                                        oPopup.close();
+                                    }
+                                }),
+                                endButton: new sap.m.Button({
+                                    text: "Annulla",
+                                    press: function () { oPopup.close(); }
+                                }),
+                                afterClose: function () { oPopup.destroy(); }
+                            });
 
-                    // 🔹 Focus automatico sull’input
-                    oPopup.attachAfterOpen(() => oNameInput.focus());
-                    oPopup.open();
-                }
-            }),
-            new sap.m.Button({
-                text: "Chiudi",
-                press: function () { oDialog.close(); }
-            })
-        ],
-        afterClose: function () { oDialog.destroy(); }
-    });
+                            // 🔹 Focus automatico sull’input
+                            oPopup.attachAfterOpen(() => oNameInput.focus());
+                            oPopup.open();
+                        }
+                    }),
+                    new sap.m.Button({
+                        text: "Chiudi",
+                        press: function () { oDialog.close(); }
+                    })
+                ],
+                afterClose: function () { oDialog.destroy(); }
+            });
 
-    oDialog.open();
-},
+            oDialog.open();
+        },
 
 
 
