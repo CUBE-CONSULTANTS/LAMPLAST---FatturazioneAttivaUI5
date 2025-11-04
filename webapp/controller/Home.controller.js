@@ -137,11 +137,10 @@ sap.ui.define([
 
         onSegmentChange: function (oEvent) {
             const sKey = oEvent.getParameter("item").getKey();
-
-            // Mostra/nascondi tipi di fattura
             const bIsSD = sKey === "sd";
             const bIsFI = sKey === "fi";
 
+            // Mostra / nascondi campi specifici
             if (this._filters.tipoFatturaSD) {
                 this._filters.tipoFatturaSD.setVisibleInFilterBar(bIsSD);
             }
@@ -149,19 +148,48 @@ sap.ui.define([
                 this._filters.tipoFatturaFI.setVisibleInFilterBar(bIsFI);
             }
 
-            this.getView().getModel("viewModel").setProperty("/currentFlow", sKey);
+            // 🔹 Svuota tutti i controlli della FilterBar
+            const oFilterBar = this.byId("filterBar");
+            if (oFilterBar) {
+                oFilterBar.getFilterGroupItems().forEach(item => {
+                    const ctrl = item.getControl();
+                    if (!ctrl) return;
+
+                    if (ctrl.isA("sap.m.MultiInput")) {
+                        ctrl.removeAllTokens();
+                    } else if (ctrl.isA("sap.m.Select")) {
+                        ctrl.setSelectedKey("");
+                    } else if (ctrl.isA("sap.m.DateRangeSelection")) {
+                        ctrl.setDateValue(null);
+                        ctrl.setSecondDateValue(null);
+                    } else if (ctrl.isA("sap.m.Input")) {
+                        ctrl.setValue("");
+                    }
+                });
+            }
+
+            // 🔹 Aggiorna modello di stato
+            const oViewModel = this.getView().getModel("viewModel");
+            oViewModel.setProperty("/currentFlow", sKey);
+
+            // 🔹 Aggiorna grafica FilterBar e reset tabella
             this.oFilterBar.invalidate();
             this.oFilterBar.rerender();
 
-            // 🔹 Ricollega la tabella al nuovo path OData
+            // Svuota la tabella e i contatori
+            this.getView().getModel("fattureModel").setData({ results: [] });
+            this._updateCounts();
+
+            // 🔹 Ricollega la tabella al nuovo flusso
             this._bindTableByFlow(sKey);
         },
 
 
 
+
         onViewXML: function (oEvent) {
             // Recupera il contesto della riga dal modello OData principale
-            const oContext = oEvent.getSource().getBindingContext("mainService");
+            const oContext = oEvent.getSource().getBindingContext("fattureModel");
             if (!oContext) {
                 sap.m.MessageToast.show("Impossibile determinare il contesto della fattura selezionata.");
                 return;
@@ -255,7 +283,7 @@ sap.ui.define([
 
         onShowAdvancedPDFDialog: async function (oEvent) {
             // Usa il binding context corretto (mainService)
-            const oContext = oEvent.getSource().getBindingContext("mainService");
+            const oContext = oEvent.getSource().getBindingContext("fattureModel");
             if (!oContext) {
                 sap.m.MessageToast.show("Impossibile determinare il contesto della riga selezionata.");
                 return;
@@ -653,97 +681,133 @@ sap.ui.define([
         },
 
 
-        onFilterBarSearch: function (oEvent) {
-            const oModel = this.getOwnerComponent().getModel("mainService");
-            const oTable = this.byId("idTableFatture");
-            const oBinding = oTable.getBinding("items");
-            const oViewModel = this.getView().getModel("viewModel");
+        onFilterBarSearch: function () {
+            const mainService = this.getOwnerComponent().getModel("mainService");
+            const viewModel = this.getView().getModel("viewModel");
+            const fattureModel = this.getView().getModel("fattureModel");
 
             sap.ui.core.BusyIndicator.show(0);
 
-            // === COSTRUZIONE FILTRI ODATA ===
-            const aFilters = [];
+            const filters = [];
 
-            const oMultiInputClienti = this.byId("multiInput");
-            if (oMultiInputClienti) {
-                const aTokens = oMultiInputClienti.getTokens().map(t => t.getKey() || t.getText());
-                if (aTokens.length) {
-                    aFilters.push(new sap.ui.model.Filter({
-                        filters: aTokens.map(v => new sap.ui.model.Filter("kunnr", "EQ", v)),
+            const clientiInput = this.byId("multiInput");
+            if (clientiInput) {
+                const clienti = clientiInput.getTokens().map(t => t.getKey() || t.getText());
+                if (clienti.length) {
+                    filters.push(new sap.ui.model.Filter({
+                        filters: clienti.map(v => new sap.ui.model.Filter("kunnr", "EQ", v)),
                         and: false
                     }));
                 }
             }
 
-            const oMultiInputPaese = this.byId("multiInputPaeseEsecutore");
-            if (oMultiInputPaese) {
-                const aTokens = oMultiInputPaese.getTokens().map(t => t.getKey() || t.getText());
-                if (aTokens.length) {
-                    aFilters.push(new sap.ui.model.Filter({
-                        filters: aTokens.map(v => new sap.ui.model.Filter("land1", "EQ", v)),
+            const paeseInput = this.byId("multiInputPaeseEsecutore");
+            if (paeseInput) {
+                const paesi = paeseInput.getTokens().map(t => t.getKey() || t.getText());
+                if (paesi.length) {
+                    filters.push(new sap.ui.model.Filter({
+                        filters: paesi.map(v => new sap.ui.model.Filter("land1", "EQ", v)),
                         and: false
                     }));
                 }
             }
 
-            const oSelectOrg = this.byId("selectOrgCommerciale");
-            if (oSelectOrg?.getSelectedKey()) {
-                aFilters.push(new sap.ui.model.Filter("vkorg", "EQ", oSelectOrg.getSelectedKey()));
+            const orgSelect = this.byId("selectOrgCommerciale");
+            if (orgSelect?.getSelectedKey()) {
+                filters.push(new sap.ui.model.Filter("vkorg", "EQ", orgSelect.getSelectedKey()));
             }
 
-            const oSelectSocieta = this.byId("selectSocieta");
-            if (oSelectSocieta?.getSelectedKey()) {
-                aFilters.push(new sap.ui.model.Filter("bukrs", "EQ", oSelectSocieta.getSelectedKey()));
+            const socSelect = this.byId("selectSocieta");
+            if (socSelect?.getSelectedKey()) {
+                filters.push(new sap.ui.model.Filter("bukrs", "EQ", socSelect.getSelectedKey()));
+            }
+            const inputDocumento = this.byId("inputDocumento");
+            if (inputDocumento) {
+                const docValue = inputDocumento.getValue()?.trim();
+                if (docValue) {
+                    filters.push(new sap.ui.model.Filter("belnr", "EQ", docValue));
+                }
             }
 
-            const sFlow = oViewModel.getProperty("/currentFlow");
-            if (sFlow === "sd") {
-                const oMultiInputTipoSD = this.byId("multiInputTipoFatturaSD");
-                if (oMultiInputTipoSD) {
-                    const aTokens = oMultiInputTipoSD.getTokens().map(t => t.getKey() || t.getText());
-                    if (aTokens.length) {
-                        aFilters.push(new sap.ui.model.Filter({
-                            filters: aTokens.map(v => new sap.ui.model.Filter("fkart", "EQ", v)),
+            const flow = viewModel.getProperty("/currentFlow");
+            if (flow === "sd") {
+                const tipoSD = this.byId("multiInputTipoFatturaSD");
+                if (tipoSD) {
+                    const tokens = tipoSD.getTokens().map(t => t.getKey() || t.getText());
+                    if (tokens.length) {
+                        filters.push(new sap.ui.model.Filter({
+                            filters: tokens.map(v => new sap.ui.model.Filter("fkart", "EQ", v)),
                             and: false
                         }));
                     }
                 }
-            } else if (sFlow === "fi") {
-                const oMultiInputTipoFI = this.byId("multiInputTipoFatturaFI");
-                if (oMultiInputTipoFI) {
-                    const aTokens = oMultiInputTipoFI.getTokens().map(t => t.getKey() || t.getText());
-                    if (aTokens.length) {
-                        aFilters.push(new sap.ui.model.Filter({
-                            filters: aTokens.map(v => new sap.ui.model.Filter("blart", "EQ", v)),
+            } else if (flow === "fi") {
+                const tipoFI = this.byId("multiInputTipoFatturaFI");
+                if (tipoFI) {
+                    const tokens = tipoFI.getTokens().map(t => t.getKey() || t.getText());
+                    if (tokens.length) {
+                        filters.push(new sap.ui.model.Filter({
+                            filters: tokens.map(v => new sap.ui.model.Filter("blart", "EQ", v)),
                             and: false
                         }));
                     }
                 }
             }
 
-            const oDateRange = this.byId("dateRangePicker");
-            if (oDateRange) {
-                const oDateValue = oDateRange.getDateValue();
-                const oSecondDateValue = oDateRange.getSecondDateValue();
+            const dateRange = this.byId("dateRangePicker");
+            if (dateRange) {
+                const from = dateRange.getDateValue();
+                const to = dateRange.getSecondDateValue();
 
-                if (oDateValue && oSecondDateValue) {
-                    const sStart = oDateValue.toISOString().split("T")[0];
-                    const sEnd = oSecondDateValue.toISOString().split("T")[0];
-                    aFilters.push(new sap.ui.model.Filter("budat", "BT", sStart, sEnd));
-                } else if (oDateValue) {
-                    const sExact = oDateValue.toISOString().split("T")[0];
-                    aFilters.push(new sap.ui.model.Filter("budat", "EQ", sExact));
+                if (from && to) {
+                    const sStart = from.toISOString().split("T")[0];
+                    const sEnd = to.toISOString().split("T")[0];
+                    filters.push(new sap.ui.model.Filter("budat", "BT", sStart, sEnd));
+                } else if (from) {
+                    const sExact = from.toISOString().split("T")[0];
+                    filters.push(new sap.ui.model.Filter("budat", "EQ", sExact));
                 }
             }
 
-            // === RINFRESCA IL BINDING ODATA ===
-            if (oBinding) {
-                oBinding.filter(aFilters, "Application");
-                oBinding.attachEventOnce("dataReceived", this._updateCounts.bind(this));
-            }
+            const sFlussoParam = flow === "fi" ? "F" : "S";
+            const sPath = `/zeim_att_getlist(FLUSSO='${sFlussoParam}')/Set`;
 
-            sap.ui.core.BusyIndicator.hide();
+            const PAGE_SIZE = 50;
+            let skip = 0;
+            let allResults = [];
+
+            const loadPage = () => {
+                mainService.read(sPath, {
+                    filters: filters,
+                    urlParameters: {
+                        "$top": PAGE_SIZE,
+                        "$skip": skip
+                    },
+                    success: (oData) => {
+                        const results = oData.results || [];
+                        allResults = allResults.concat(results);
+
+                        if (results.length === PAGE_SIZE) {
+                            skip += PAGE_SIZE;
+                            loadPage(); // continua finché ci sono pagine
+                        } else {
+                            fattureModel.setData({ results: allResults });
+                            this._updateCounts();
+                            sap.ui.core.BusyIndicator.hide();
+                        }
+                    },
+                    error: (err) => {
+                        console.error("Errore durante la lettura filtrata:", err);
+                        sap.ui.core.BusyIndicator.hide();
+                    }
+                });
+            };
+
+            loadPage();
         }
+
+
+
 
     });
 });

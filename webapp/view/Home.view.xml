@@ -73,6 +73,22 @@
                                 </MultiInput>
                             </fb:control>
                         </fb:FilterGroupItem>
+                                                <fb:FilterGroupItem
+                            name="document"
+                            label="Nr. Documento"
+                            groupName="NrDocumento"
+                            visibleInFilterBar="true"
+                        >
+                            <fb:control>
+                                <Input
+                                    id="inputDocumento"
+                                    width="300px"
+                                   type="Number"
+                                >
+
+                                </Input>
+                            </fb:control>
+                        </fb:FilterGroupItem>
                         <fb:FilterGroupItem
                             name="Paese dell'Esec.Pag."
                             label="Paese dell'Esec.Pag."
