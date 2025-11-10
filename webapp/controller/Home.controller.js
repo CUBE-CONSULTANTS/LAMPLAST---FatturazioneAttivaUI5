@@ -40,6 +40,16 @@ sap.ui.define([
 
             this.oFilterBar = this.byId("filterBar");
 
+            const oDateRange = this.byId("dateRangePicker");
+            if (oDateRange) {
+                const oToday = new Date();
+                const oPast = new Date();
+                oPast.setMonth(oPast.getMonth() - 1);
+
+                oDateRange.setDateValue(oPast);
+                oDateRange.setSecondDateValue(oToday);
+            }
+
             const aFGI = this.oFilterBar.getFilterGroupItems();
             this._filters = {
                 tipoFatturaSD: aFGI.find(f => f.getName() === "Tipo Fattura SD"),
@@ -82,7 +92,17 @@ sap.ui.define([
             this._pagination.isLoading = true;
             sap.ui.core.BusyIndicator.show(0);
 
+            const oDateRange = this.byId("dateRangePicker");
+            let aDefaultFilters = [];
+
+            if (oDateRange && oDateRange.getDateValue() && oDateRange.getSecondDateValue()) {
+                const sFrom = oDateRange.getDateValue().toISOString().split("T")[0];
+                const sTo = oDateRange.getSecondDateValue().toISOString().split("T")[0];
+                aDefaultFilters.push(new sap.ui.model.Filter("budat", "BT", sFrom, sTo));
+            }
+
             oModel.read(sPath, {
+                filters: aDefaultFilters,
                 urlParameters: {
                     "$top": this._pagination.top,
                     "$skip": this._pagination.skip
@@ -159,9 +179,6 @@ sap.ui.define([
                         ctrl.removeAllTokens();
                     } else if (ctrl.isA("sap.m.Select")) {
                         ctrl.setSelectedKey("");
-                    } else if (ctrl.isA("sap.m.DateRangeSelection")) {
-                        ctrl.setDateValue(null);
-                        ctrl.setSecondDateValue(null);
                     } else if (ctrl.isA("sap.m.Input")) {
                         ctrl.setValue("");
                     }
@@ -188,19 +205,47 @@ sap.ui.define([
 
 
         onViewXML: function (oEvent) {
-            // Recupera il contesto della riga dal modello OData principale
             const oContext = oEvent.getSource().getBindingContext("fattureModel");
             if (!oContext) {
-                sap.m.MessageToast.show("Impossibile determinare il contesto della fattura selezionata.");
+                sap.m.MessageToast.show("Impossibile determinare la fattura selezionata.");
                 return;
             }
 
-            const oData = oContext.getObject();
+            const oRow = oContext.getObject();
+            const sBukrs = oRow.bukrs;
+            const sBelnr = oRow.belnr;
+            const sGjahr = oRow.gjahr;
+            const sVbeln = oRow.vbeln;
+            const sFlusso = this.getView().getModel("viewModel").getProperty("/currentFlow") === "fi" ? "F" : "S";
 
-            // Ottieni il contenuto XML (se disponibile nella riga)
-            const sXmlContent = oData?.XmlContent || "<xml/>";
+            const oModel = this.getOwnerComponent().getModel("mainService");
 
-            // Editor di sola lettura
+            const sPath = `/ZEIM_ATT_FATTURA_XML(bukrs='${sBukrs}',belnr='${sBelnr}',gjahr='${sGjahr}',flusso='${sFlusso}',vbeln='${sVbeln}')`;
+
+            sap.ui.core.BusyIndicator.show(0);
+
+            oModel.read(sPath, {
+                success: (oData) => {
+                    sap.ui.core.BusyIndicator.hide();
+
+                    let sXml = "";
+                    try {
+                        sXml = atob(oData.base64 || "");
+                    } catch (e) {
+                        sXml = "<Errore>Contenuto XML non valido</Errore>";
+                    }
+
+                    this._openXmlDialog(sXml, oData.filename);
+                },
+                error: () => {
+                    sap.ui.core.BusyIndicator.hide();
+                    sap.m.MessageToast.show("Errore nel recupero dell'XML dal backend.");
+                }
+            });
+        },
+
+        _openXmlDialog: function (sXmlContent, sFilename) {
+
             const oCodeEditor = new sap.ui.codeeditor.CodeEditor({
                 type: "xml",
                 value: sXmlContent,
@@ -211,63 +256,14 @@ sap.ui.define([
                 syntaxHints: true
             });
 
-            // Dialog principale di visualizzazione XML
             const oDialog = new sap.m.Dialog({
-                title: "Visualizza XML",
+                title: sFilename || "Visualizza XML",
                 contentWidth: "80%",
                 contentHeight: "60%",
-                resizable: true,
                 draggable: true,
+                resizable: true,
                 content: [oCodeEditor],
                 buttons: [
-                    new sap.m.Button({
-                        text: "Salva",
-                        type: "Emphasized",
-                        press: function () {
-                            // === Nome file dinamico ===
-                            const sBukrs = oData.bukrs || "BUKRS";
-                            const sVbeln = oData.vbeln || "VBELN";
-                            const sGjahr = oData.gjahr || "GJAHR";
-                            const sDefaultName = `${sBukrs}_${sVbeln}_${sGjahr}.xml`;
-
-                            // === Dialog secondario “Salva come” ===
-                            const oNameInput = new sap.m.Input({
-                                placeholder: "Nome file",
-                                value: sDefaultName,
-                                width: "90%"
-                            }).addStyleClass("sapUiSmallMarginBeginEnd");
-
-                            const oPopup = new sap.m.Dialog({
-                                title: "Salva come...",
-                                content: [oNameInput],
-                                beginButton: new sap.m.Button({
-                                    text: "Conferma",
-                                    type: "Emphasized",
-                                    press: function () {
-                                        const sFileName = oNameInput.getValue() || sDefaultName;
-                                        const sContent = oCodeEditor.getValue();
-
-                                        const blob = new Blob([sContent], { type: "application/xml" });
-                                        const link = document.createElement("a");
-                                        link.href = window.URL.createObjectURL(blob);
-                                        link.download = sFileName;
-                                        link.click();
-
-                                        oPopup.close();
-                                    }
-                                }),
-                                endButton: new sap.m.Button({
-                                    text: "Annulla",
-                                    press: function () { oPopup.close(); }
-                                }),
-                                afterClose: function () { oPopup.destroy(); }
-                            });
-
-                            // 🔹 Focus automatico sull’input
-                            oPopup.attachAfterOpen(() => oNameInput.focus());
-                            oPopup.open();
-                        }
-                    }),
                     new sap.m.Button({
                         text: "Chiudi",
                         press: function () { oDialog.close(); }
@@ -278,6 +274,7 @@ sap.ui.define([
 
             oDialog.open();
         },
+
 
 
 
@@ -399,7 +396,6 @@ sap.ui.define([
                     aTabFilters = []; // rimuove filtro tab
             }
 
-            // ✅ Applica COME Application filter (server-side), così funziona con growing
             oBinding.filter(aTabFilters, sap.ui.model.FilterType.Application);
 
             // aggiorna i contatori dopo il nuovo caricamento
@@ -412,7 +408,6 @@ sap.ui.define([
         onSelectionChange: function (oEvent) {
             var oTable = this.byId("idTableFatture");
             var aSelected = oTable.getSelectedItems();
-            this.byId("btnCreateXML").setEnabled(aSelected.length > 0);
             this.byId("btnInviaIntermediario").setEnabled(aSelected.length > 0);
         },
 
@@ -606,7 +601,7 @@ sap.ui.define([
 
         onNavToCliente: async function (oEvent) {
             try {
-                const oContext = oEvent.getSource().getBindingContext("mainService");
+                const oContext = oEvent.getSource().getBindingContext("fattureModel");
                 if (!oContext) {
                     sap.m.MessageToast.show("Impossibile determinare il cliente selezionato.");
                     return;
@@ -646,7 +641,7 @@ sap.ui.define([
 
         onNavToDocumento: async function (oEvent) {
             try {
-                const oContext = oEvent.getSource().getBindingContext("mainService");
+                const oContext = oEvent.getSource().getBindingContext("fattureModel");
                 if (!oContext) {
                     sap.m.MessageToast.show("Impossibile determinare il cliente selezionato.");
                     return;

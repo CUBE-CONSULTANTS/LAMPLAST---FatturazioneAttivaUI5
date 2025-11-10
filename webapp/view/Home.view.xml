@@ -279,7 +279,10 @@
                 growing="true"
                 growingThreshold="20"
                 growingTriggerText="Carica altro"
+                mode="MultiSelect"
                 items="{path: 'fattureModel>/results'}"
+                selectionChange=".onSelectionChange"
+                sticky="ColumnHeaders"
             >
                 <columns>
                     <Column width="3rem">
