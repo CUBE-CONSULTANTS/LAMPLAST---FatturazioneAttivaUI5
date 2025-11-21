@@ -215,12 +215,12 @@ sap.ui.define([
             const sBukrs = oRow.bukrs;
             const sBelnr = oRow.belnr;
             const sGjahr = oRow.gjahr;
-            const sVbeln = oRow.vbeln;
+            //const sVbeln = oRow.vbeln;
             const sFlusso = this.getView().getModel("viewModel").getProperty("/currentFlow") === "fi" ? "F" : "S";
 
             const oModel = this.getOwnerComponent().getModel("mainService");
 
-            const sPath = `/ZEIM_ATT_FATTURA_XML(bukrs='${sBukrs}',belnr='${sBelnr}',gjahr='${sGjahr}',flusso='${sFlusso}',vbeln='${sVbeln}')`;
+            const sPath = `/ZEIM_ATT_FATTURA_XML(bukrs='${sBukrs}',belnr='${sBelnr}',gjahr='${sGjahr}',flusso='${sFlusso}')`;
 
             sap.ui.core.BusyIndicator.show(0);
 
@@ -249,7 +249,7 @@ sap.ui.define([
             const oCodeEditor = new sap.ui.codeeditor.CodeEditor({
                 type: "xml",
                 value: sXmlContent,
-                height: "400px",
+                height: "500px",
                 width: "100%",
                 editable: false,
                 lineNumbers: true,
@@ -405,7 +405,7 @@ sap.ui.define([
 
 
 
-        onSelectionChange: function (oEvent) {
+        onSelectionChange: function () {
             var oTable = this.byId("idTableFatture");
             var aSelected = oTable.getSelectedItems();
             this.byId("btnInviaIntermediario").setEnabled(aSelected.length > 0);
