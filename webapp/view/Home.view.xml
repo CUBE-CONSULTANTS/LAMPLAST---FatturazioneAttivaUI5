@@ -343,7 +343,8 @@
                             <Text text="{fattureModel>CustomerName}" />
                             <Text text="{fattureModel>stcd2}" />
                             <Text text="{fattureModel>stcd1}" />
-                            <Text text="{fattureModel>vbeln}" />
+                            <Link text="{fattureModel>vbeln}"
+                                    press=".onNavToDocumentoVendita" />
                             <Link
                                 text="{fattureModel>belnr}"
                                 press=".onNavToDocumento"

@@ -299,8 +299,12 @@ sap.ui.define([
                     sap.m.MessageToast.show("Numero documento mancante (vbeln).");
                     return;
                 }
+                const sBukrs = oData.bukrs;
+                const sBelnr = oData.belnr;
+                const sGjahr = oData.gjahr;
+                const sflusso = oData.FLUSSO
                 // costruisci dinamicamente il path per la function import
-                sPath = `/ZEIM_GetPDFBillingDocument('${sBillingDocument}')`;
+                sPath = `/ZEIM_GetPDFAccountingDocument(bukrs='${sBukrs}',belnr='${sBelnr}',gjahr='${sGjahr}',FLUSSO='${sflusso}')`;
             }
 
             // === FLUSSO FI ===
@@ -308,6 +312,7 @@ sap.ui.define([
                 const sBukrs = oData.bukrs;
                 const sBelnr = oData.belnr;
                 const sGjahr = oData.gjahr;
+                const sflusso = oData.FLUSSO
 
                 if (!sBukrs || !sBelnr || !sGjahr) {
                     sap.m.MessageBox.warning("Dati incompleti per la chiamata PDF FI (bukrs/belnr/gjahr mancanti).");
@@ -315,7 +320,7 @@ sap.ui.define([
                 }
 
                 // path dinamico
-                sPath = `/ZEIM_GetPDFAccountingDocument(bukrs='${sBukrs}',belnr='${sBelnr}',gjahr='${sGjahr}')`;
+                sPath = `/ZEIM_GetPDFAccountingDocument(bukrs='${sBukrs}',belnr='${sBelnr}',gjahr='${sGjahr}',FLUSSO='${sflusso}')`;
             }
 
             // === CONTROLLO PATH ===
@@ -371,6 +376,7 @@ sap.ui.define([
                 sap.m.MessageBox.error(sMsg);
             }
         },
+
 
 
         onIconTabSelect: function (oEvent) {
@@ -674,6 +680,52 @@ sap.ui.define([
                 console.error("Errore nella navigazione Cross-App:", err);
             }
         },
+
+        onNavToDocumentoVendita: async function (oEvent) {
+            try {
+                const oContext = oEvent.getSource().getBindingContext("fattureModel");
+                if (!oContext) {
+                    sap.m.MessageToast.show("Impossibile determinare il documento di vendita selezionato.");
+                    return;
+                }
+
+                const oData = oContext.getObject();
+                const vbeln = oData.vbeln;
+
+                const oCrossAppNav = await sap.ushell.Container.getServiceAsync("CrossApplicationNavigation");
+
+                // Hash generato dal FLP
+                const sHash = oCrossAppNav.hrefForExternal({
+                    target: {
+                        semanticObject: "BillingDocument",
+                        action: "changeBillingDocument"
+                    },
+                    params: {
+                        BillingDocument: vbeln
+                    }
+                });
+
+                // Se serve mantenere un navigation-scope-filter (come F7697)
+                const sScopeFilter = "sap-navigation-scope-filter=F7697";
+
+                // Costruzione URL finale (identico stile di onNavToCliente)
+                const sFullUrl =
+                    window.location.origin +
+                    "/ui" +
+                    sHash +
+                    "&sap-app-origin-hint=&" +
+                    sScopeFilter;
+
+                console.log("URL finale:", sFullUrl);
+
+                window.open(sFullUrl, "_blank");
+
+            } catch (err) {
+                console.error("Errore nella navigazione Cross-App:", err);
+                sap.m.MessageBox.error("Impossibile aprire il documento di vendita.");
+            }
+        },
+
 
 
         onFilterBarSearch: function () {
