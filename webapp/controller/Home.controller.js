@@ -144,7 +144,7 @@ sap.ui.define([
 
             const oCounts = {
                 All: aFatture.length,
-                Processed: aFatture.filter(f => f.esito?.toLowerCase().includes("processato")).length,
+                Processed: aFatture.filter(f => f.esito?.toLowerCase().includes("completato")).length,
                 Working: aFatture.filter(f => f.esito?.toLowerCase().includes("da processare")).length,
                 Error: aFatture.filter(f => f.esito?.toLowerCase().includes("errore")).length
             };
@@ -389,7 +389,7 @@ sap.ui.define([
             let aTabFilters = [];
             switch (sKey) {
                 case "Processed":
-                    aTabFilters = [new sap.ui.model.Filter("esito", sap.ui.model.FilterOperator.EQ, "Processato")];
+                    aTabFilters = [new sap.ui.model.Filter("esito", sap.ui.model.FilterOperator.EQ, "Completato")];
                     break;
                 case "Working":
                     aTabFilters = [new sap.ui.model.Filter("esito", sap.ui.model.FilterOperator.EQ, "Da processare")];
@@ -577,7 +577,7 @@ sap.ui.define([
                 if (!sEsito) return "None";
                 sEsito = sEsito.toLowerCase();
 
-                if (sEsito.includes("processato")) return "Success";
+                if (sEsito.includes("completato")) return "Success";
                 if (sEsito.includes("errore")) return "Error";
                 if (sEsito.includes("da processare")) return "Warning";
                 return "None";
@@ -587,7 +587,7 @@ sap.ui.define([
                 if (!sEsito) return "sap-icon://question-mark";
                 sEsito = sEsito.toLowerCase();
 
-                if (sEsito.includes("processato")) return "sap-icon://accept";
+                if (sEsito.includes("completato")) return "sap-icon://accept";
                 if (sEsito.includes("errore")) return "sap-icon://error";
                 if (sEsito.includes("da processare")) return "sap-icon://pending";
                 return "sap-icon://question-mark";
