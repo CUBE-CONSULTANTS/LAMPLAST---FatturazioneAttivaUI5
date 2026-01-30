@@ -1,405 +1,410 @@
-    <mvc:View
-        controllerName="com.zeim.fatturazioneattiva.controller.Home"
-        xmlns:mvc="sap.ui.core.mvc"
-        xmlns="sap.m"
-        xmlns:core="sap.ui.core"
-        xmlns:f="sap.f"
-        xmlns:card="sap.f.cards"
-        xmlns:form="sap.ui.layout.form"
-        xmlns:fb="sap.ui.comp.filterbar"
-        xmlns:vh="sap.ui.comp.valuehelpdialog"
-    >
-        <Page showHeader="false">
-            <Panel>
-                <FlexBox
-                    alignItems="Start"
-                    justifyContent="Center"
+<mvc:View
+    controllerName="com.zeim.fatturazioneattiva.controller.Home"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.f"
+    xmlns:card="sap.f.cards"
+    xmlns:form="sap.ui.layout.form"
+    xmlns:fb="sap.ui.comp.filterbar"
+    xmlns:vh="sap.ui.comp.valuehelpdialog"
+>
+    <Page showHeader="false">
+        <Panel>
+            <FlexBox
+                alignItems="Start"
+                justifyContent="Center"
+            >
+                <SegmentedButton
+                    id="idSegmentedBtn"
+                    selectionChange=".onSegmentChange"
+                    selectedKey="sd"
                 >
-                    <SegmentedButton
-                        id="idSegmentedBtn"
-                        selectionChange=".onSegmentChange"
-                        selectedKey="sd"
+                    <items>
+                        <SegmentedButtonItem
+                            key="sd"
+                            text="Flusso Fatture SD"
+                            width="auto"
+                        />
+                        <SegmentedButtonItem
+                            key="fi"
+                            text="Flusso Fatture FI"
+                            width="auto"
+                        />
+                    </items>
+                </SegmentedButton>
+            </FlexBox>
+        </Panel>
+
+        <Panel headerText="Filtri di ricerca">
+            <fb:FilterBar
+                id="filterBar"
+                persistencyKey="myPersKey"
+                useToolbar="false"
+                search=".onFilterBarSearch"
+                showGoOnFB="true"
+                isRunningInValueHelpDialog="false"
+            >
+                <fb:filterGroupItems>
+                    <fb:FilterGroupItem
+                        name="Customer"
+                        label="Cliente"
+                        groupName="Cliente"
+                        visibleInFilterBar="true"
                     >
-                        <items>
-                            <SegmentedButtonItem
-                                key="sd"
-                                text="Flusso Fatture SD"
-                                width="auto"
+                        <fb:control>
+                            <MultiInput
+                                id="multiInput"
+                                width="300px"
+                                showValueHelp="true"
+                                valueHelpRequest=".onValueHelpClienti"
+                                showSuggestion="true"
+                                suggestionItems="{path: 'Clienti>/I_Customer'}"
+                                data-model="Clienti"
+                                data-key="Customer"
+                                data-desc="OrganizationBPName1"
+                            >
+                                <suggestionItems>
+                                    <core:Item
+                                        key="{Clienti>Customer}"
+                                        text="{Clienti>OrganizationBPName1}"
+                                    />
+                                </suggestionItems>
+                            </MultiInput>
+                        </fb:control>
+                    </fb:FilterGroupItem>
+                    <fb:FilterGroupItem
+                        name="document"
+                        label="Nr. Documento"
+                        groupName="NrDocumento"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <Input
+                                id="inputDocumento"
+                                width="300px"
+                                type="Number"
                             />
-                            <SegmentedButtonItem
-                                key="fi"
-                                text="Flusso Fatture FI"
-                                width="auto"
-                            />
-                        </items>
-                    </SegmentedButton>
-                </FlexBox>
-            </Panel>
-
-            <Panel headerText="Filtri di ricerca">
-                <fb:FilterBar
-                    id="filterBar"
-                    persistencyKey="myPersKey"
-                    useToolbar="false"
-                    search=".onFilterBarSearch"
-                    showGoOnFB="true"
-                    isRunningInValueHelpDialog="false"
-                >
-                    <fb:filterGroupItems>
-                        <fb:FilterGroupItem
-                            name="Customer"
-                            label="Cliente"
-                            groupName="Cliente"
-                            visibleInFilterBar="true"
-                        >
-                            <fb:control>
-                                <MultiInput
-                                    id="multiInput"
-                                    width="300px"
-                                    showValueHelp="true"
-                                    valueHelpRequest=".onValueHelpClienti"
-                                    showSuggestion="true"
-                                    suggestionItems="{path: 'Clienti>/I_Customer'}"
-                                    data-model="Clienti"
-                                    data-key="Customer"
-                                    data-desc="OrganizationBPName1"
-                                >
-                                    <suggestionItems>
-                                        <core:Item
-                                            key="{Clienti>Customer}"
-                                            text="{Clienti>OrganizationBPName1}"
-                                        />
-                                    </suggestionItems>
-                                </MultiInput>
-                            </fb:control>
-                        </fb:FilterGroupItem>
-                                                <fb:FilterGroupItem
-                            name="document"
-                            label="Nr. Documento"
-                            groupName="NrDocumento"
-                            visibleInFilterBar="true"
-                        >
-                            <fb:control>
-                                <Input
-                                    id="inputDocumento"
-                                    width="300px"
-                                   type="Number"
-                                >
-
-                                </Input>
-                            </fb:control>
-                        </fb:FilterGroupItem>
-                        <fb:FilterGroupItem
-                            name="Paese dell'Esec.Pag."
-                            label="Paese dell'Esec.Pag."
-                            groupName="General"
-                            visibleInFilterBar="true"
-                        >
-                            <fb:control>
-                                <MultiInput
-                                    id="multiInputPaeseEsecutore"
-                                    width="300px"
-                                    showValueHelp="true"
-                                    valueHelpRequest=".onValueHelpPaeseEsecutore"
-                                    showSuggestion="true"
-                                    suggestionItems="{path: 'MCPaeseEsecutore>/I_Country'}"
-                                    data-model="MCPaeseEsecutore"
-                                    data-key="Country"
-                                    data-desc="Country_Text"
-                                >
-                                    <suggestionItems>
-                                        <core:Item
-                                            key="{MCPaeseEsecutore>Country}"
-                                            text="{MCPaeseEsecutore>Country_Text}"
-                                        />
-                                    </suggestionItems>
-                                </MultiInput>
-                            </fb:control>
-                        </fb:FilterGroupItem>
-                        <fb:FilterGroupItem
-                            name="Org. Commerciale"
-                            label="Org. Commerciale"
-                            groupName="General"
-                            visibleInFilterBar="true"
-                        >
-                            <fb:control>
-                                <Select
-                                    id="selectOrgCommerciale"
-                                    width="300px"
-                                    forceSelection="false"
-                                    items="{
+                        </fb:control>
+                    </fb:FilterGroupItem>
+                    <fb:FilterGroupItem
+                        name="Paese dell'Esec.Pag."
+                        label="Paese dell'Esec.Pag."
+                        groupName="General"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <MultiInput
+                                id="multiInputPaeseEsecutore"
+                                width="300px"
+                                showValueHelp="true"
+                                valueHelpRequest=".onValueHelpPaeseEsecutore"
+                                showSuggestion="true"
+                                suggestionItems="{path: 'MCPaeseEsecutore>/I_Country'}"
+                                data-model="MCPaeseEsecutore"
+                                data-key="Country"
+                                data-desc="Country_Text"
+                            >
+                                <suggestionItems>
+                                    <core:Item
+                                        key="{MCPaeseEsecutore>Country}"
+                                        text="{MCPaeseEsecutore>Country_Text}"
+                                    />
+                                </suggestionItems>
+                            </MultiInput>
+                        </fb:control>
+                    </fb:FilterGroupItem>
+                    <fb:FilterGroupItem
+                        name="Org. Commerciale"
+                        label="Org. Commerciale"
+                        groupName="General"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <Select
+                                id="selectOrgCommerciale"
+                                width="300px"
+                                forceSelection="false"
+                                items="{
                                     path: 'MCOrgCommerciale>/ZR_EIM_SALESORGANIZATION'}"
-                                >
-                                    <core:Item
-                                        key="{MCOrgCommerciale>SalesOrganization}"
-                                        text="{MCOrgCommerciale>SalesOrganization}"
-                                    />
-                                </Select>
-                            </fb:control>
-                        </fb:FilterGroupItem>
-                        <fb:FilterGroupItem
-                            name="Data"
-                            label="Data Registrazione"
-                            groupName="General"
-                            visibleInFilterBar="true"
-                        >
-                            <fb:control>
-                                <DateRangeSelection
-                                    id="dateRangePicker"
-                                    delimiter=" - "
-                                    width="300px"
-                                    displayFormat="dd/MM/yyyy"
-                                    valueFormat="yyyy-MM-dd"
+                            >
+                                <core:Item
+                                    key="{MCOrgCommerciale>SalesOrganization}"
+                                    text="{MCOrgCommerciale>SalesOrganization}"
                                 />
-                            </fb:control>
-                        </fb:FilterGroupItem>
+                            </Select>
+                        </fb:control>
+                    </fb:FilterGroupItem>
+                    <fb:FilterGroupItem
+                        name="Data"
+                        label="Data Registrazione"
+                        groupName="General"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <DateRangeSelection
+                                id="dateRangePicker"
+                                delimiter=" - "
+                                width="300px"
+                                displayFormat="dd/MM/yyyy"
+                                valueFormat="yyyy-MM-dd"
+                            />
+                        </fb:control>
+                    </fb:FilterGroupItem>
 
-                        <fb:FilterGroupItem
-                            name="Società"
-                            label="Società"
-                            groupName="General"
-                            visibleInFilterBar="true"
-                        >
-                            <fb:control>
-                                <Select
-                                    id="selectSocieta"
-                                    width="300px"
-                                    forceSelection="false"
-                                    items="{
+                    <fb:FilterGroupItem
+                        name="Società"
+                        label="Società"
+                        groupName="General"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <Select
+                                id="selectSocieta"
+                                width="300px"
+                                forceSelection="false"
+                                items="{
                                     path: 'MCSocieta>/ZR_EIM_COMPANY'}"
-                                >
-                                    <core:Item
-                                        key="{MCSocieta>CompanyCode}"
-                                        text="{MCSocieta>CompanyCode}"
-                                    />
-                                </Select>
-                            </fb:control>
-                        </fb:FilterGroupItem>
-
-                        <fb:FilterGroupItem
-                            name="Tipo Fattura SD"
-                            label="Tipo Fattura SD"
-                            groupName="General"
-                            visibleInFilterBar="true"
-                        >
-                            <fb:control>
-                                <MultiInput
-                                    id="multiInputTipoFatturaSD"
-                                    width="300px"
-                                    showValueHelp="true"
-                                    valueHelpRequest=".onValueHelpTipoFatturaSD"
-                                    showSuggestion="true"
-                                    suggestionItems="{path: 'MCTipoFatturaSD>/I_BillingDocumentTypeStdVH'}"
-                                    data-model="MCTipoFatturaSD"
-                                    data-key="BillingDocumentType"
-                                    data-desc="BillingDocumentType_Text"
-                                >
-                                    <suggestionItems>
-                                        <core:Item
-                                            key="{MCTipoFatturaSD>BillingDocumentType}"
-                                            text="{MCTipoFatturaSD>BillingDocumentType}"
-                                        />
-                                    </suggestionItems>
-                                </MultiInput>
-                            </fb:control>
-                        </fb:FilterGroupItem>
-                        <fb:FilterGroupItem
-                            name="Tipo Fattura FI"
-                            label="Tipo Fattura FI"
-                            groupName="General"
-                            visibleInFilterBar="true"
-                        >
-                            <fb:control>
-                                <MultiInput
-                                    id="multiInputTipoFatturaFI"
-                                    width="300px"
-                                    showValueHelp="true"
-                                    valueHelpRequest=".onValueHelpTipoFatturaFI"
-                                    showSuggestion="true"
-                                    suggestionItems="{path: 'MCTipoFatturaFI>/I_AccountingDocumentType'}"
-                                    data-model="MCTipoFatturaFI"
-                                    data-key="AccountingDocumentType"
-                                    data-desc="AccountingDocumentType_Text"
-                                >
-                                    <suggestionItems>
-                                        <core:Item
-                                            key="{MCTipoFatturaFI>AccountingDocumentType}"
-                                            text="{MCTipoFatturaFI>AccountingDocumentType}"
-                                        />
-                                    </suggestionItems>
-                                </MultiInput>
-                            </fb:control>
-                        </fb:FilterGroupItem>
-                    </fb:filterGroupItems>
-                </fb:FilterBar>
-            </Panel>
-
-            <IconTabBar
-                id="idIconTabBar"
-                select=".onIconTabSelect"
-                expandable="false"
-                expanded="false"
-            >
-                <items>
-                    <IconTabFilter
-                        key="All"
-                        text="Fatture"
-                        showAll="true"
-                        count="{viewModel>/counts/All}"
-                        icon="sap-icon://documents"
-                        iconColor="Neutral"
-                    />
-                    <IconTabSeparator />
-                    <IconTabFilter
-                        key="Processed"
-                        text="Processate"
-                        icon="sap-icon://accept"
-                        iconColor="Positive"
-                        count="{viewModel>/counts/Processed}"
-                    />
-                    <IconTabFilter
-                        key="Working"
-                        text="Da processare"
-                        icon="sap-icon://pending"
-                        iconColor="Critical"
-                        count="{viewModel>/counts/Working}"
-                    />
-                    <IconTabFilter
-                        key="Error"
-                        text="In errore"
-                        icon="sap-icon://error"
-                        iconColor="Negative"
-                        count="{viewModel>/counts/Error}"
-                    />
-                </items>
-            </IconTabBar>
-
-            <Table
-                id="idTableFatture"
-                growing="true"
-                growingThreshold="20"
-                growingTriggerText="Carica altro"
-                mode="MultiSelect"
-                items="{path: 'fattureModel>/results'}"
-                selectionChange=".onSelectionChange"
-                sticky="ColumnHeaders"
-            >
-                <columns>
-                    <Column width="3rem">
-                        <Text text="Società" />
-                    </Column>
-                    <Column width="4rem">
-                        <Text text="Cliente" />
-                    </Column>
-                    <Column width="8rem">
-                        <Text text="Nominativo" />
-                    </Column>
-                    <Column width="6rem">
-                        <Text text="P.IVA" />
-                    </Column>
-                    <Column width="6rem">
-                        <Text text="C.F." />
-                    </Column>
-                    <Column width="4rem">
-                        <Text text="Doc Fatt" />
-                    </Column>
-                    <Column width="5rem">
-                        <Text text="N° Doc" />
-                    </Column>
-                    <Column width="6rem">
-                        <Text text="Data Registrazione" />
-                    </Column>
-                    <Column width="5rem">
-                        <Text text="Esercizio" />
-                    </Column>
-                    <Column width="6rem">
-                        <Text text="Tot Fattura" />
-                    </Column>
-                    <Column width="5rem">
-                        <Text text="CD Univoco" />
-                    </Column>
-                    <Column width="4rem">
-                        <Text text="PEC" />
-                    </Column>
-                    <Column width="6rem">
-                        <Text text="Esito" />
-                    </Column>
-                    <Column width="7rem">
-                        <Text text="Messaggio" />
-                    </Column>
-                    <Column width="8rem">
-                        <Text text="Azioni" />
-                    </Column>
-                </columns>
-
-                <items>
-                    <ColumnListItem>
-                        <cells>
-                            <Text text="{fattureModel>bukrs}" />
-                            <Link
-                                text="{fattureModel>kunnr}"
-                                press=".onNavToCliente"
-                            />
-                            <Text text="{fattureModel>CustomerName}" />
-                            <Text text="{fattureModel>stcd2}" />
-                            <Text text="{fattureModel>stcd1}" />
-                            <Link text="{fattureModel>vbeln}"
-                                    press=".onNavToDocumentoVendita" />
-                            <Link
-                                text="{fattureModel>belnr}"
-                                press=".onNavToDocumento"
-                            />
-                            <Text
-                                text="{path: 'fattureModel>budat', formatter: '.formatter.formatDate'}"
-                            />
-                            <Text text="{fattureModel>gjahr}" />
-                            <ObjectNumber
-                                number="{fattureModel>wrbtr}"
-                                unit="{fattureModel>waers}"
-                            />
-                            <Text text="{fattureModel>cd_univoco}" />
-                            <Text text="{fattureModel>PEC}" />
-                            <ObjectStatus
-                                text="{fattureModel>esito}"
-                                icon="{path: 'fattureModel>esito', formatter: '.formatter.statusIcon'}"
-                                state="{path: 'fattureModel>esito', formatter: '.formatter.statusState'}"
-                            />
-                            <Text text="{fattureModel>message}" />
-                            <HBox>
-                                <Button
-                                    icon="sap-icon://show"
-                                    type="Transparent"
-                                    press=".onViewXML"
+                            >
+                                <core:Item
+                                    key="{MCSocieta>CompanyCode}"
+                                    text="{MCSocieta>CompanyCode}"
                                 />
-                                <!-- <Button
+                            </Select>
+                        </fb:control>
+                    </fb:FilterGroupItem>
+
+                    <fb:FilterGroupItem
+                        name="Tipo Fattura SD"
+                        label="Tipo Fattura SD"
+                        groupName="General"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <MultiInput
+                                id="multiInputTipoFatturaSD"
+                                width="300px"
+                                showValueHelp="true"
+                                valueHelpRequest=".onValueHelpTipoFatturaSD"
+                                showSuggestion="true"
+                                suggestionItems="{path: 'MCTipoFatturaSD>/I_BillingDocumentTypeStdVH'}"
+                                data-model="MCTipoFatturaSD"
+                                data-key="BillingDocumentType"
+                                data-desc="BillingDocumentType_Text"
+                            >
+                                <suggestionItems>
+                                    <core:Item
+                                        key="{MCTipoFatturaSD>BillingDocumentType}"
+                                        text="{MCTipoFatturaSD>BillingDocumentType}"
+                                    />
+                                </suggestionItems>
+                            </MultiInput>
+                        </fb:control>
+                    </fb:FilterGroupItem>
+                    <fb:FilterGroupItem
+                        name="Tipo Fattura FI"
+                        label="Tipo Fattura FI"
+                        groupName="General"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <MultiInput
+                                id="multiInputTipoFatturaFI"
+                                width="300px"
+                                showValueHelp="true"
+                                valueHelpRequest=".onValueHelpTipoFatturaFI"
+                                showSuggestion="true"
+                                suggestionItems="{path: 'MCTipoFatturaFI>/I_AccountingDocumentType'}"
+                                data-model="MCTipoFatturaFI"
+                                data-key="AccountingDocumentType"
+                                data-desc="AccountingDocumentType_Text"
+                            >
+                                <suggestionItems>
+                                    <core:Item
+                                        key="{MCTipoFatturaFI>AccountingDocumentType}"
+                                        text="{MCTipoFatturaFI>AccountingDocumentType}"
+                                    />
+                                </suggestionItems>
+                            </MultiInput>
+                        </fb:control>
+                    </fb:FilterGroupItem>
+                </fb:filterGroupItems>
+            </fb:FilterBar>
+        </Panel>
+
+        <IconTabBar
+            id="idIconTabBar"
+            select=".onIconTabSelect"
+            expandable="false"
+            expanded="false"
+        >
+            <items>
+                <IconTabFilter
+                    key="All"
+                    text="Fatture"
+                    showAll="true"
+                    count="{viewModel>/counts/All}"
+                    icon="sap-icon://documents"
+                    iconColor="Neutral"
+                />
+                <IconTabSeparator />
+                <IconTabFilter
+                    key="Processed"
+                    text="Completate"
+                    icon="sap-icon://accept"
+                    iconColor="Positive"
+                    count="{viewModel>/counts/Processed}"
+                />
+                <IconTabFilter
+                    key="Working"
+                    text="Da processare"
+                    icon="sap-icon://pending"
+                    iconColor="Critical"
+                    count="{viewModel>/counts/Working}"
+                />
+                <IconTabFilter
+                    key="Error"
+                    text="In errore"
+                    icon="sap-icon://error"
+                    iconColor="Negative"
+                    count="{viewModel>/counts/Error}"
+                />
+            </items>
+        </IconTabBar>
+			<MessageStrip
+				text="Le fatture selezionate sono in fase di invio all'intermediario. Si prega di aggiornare la lista tra qualche minuto per verificare lo stato di invio."
+				showIcon="true"
+				showCloseButton="true"
+                visible="{= ${viewModel>/messageStrip/visible} }"
+				class="sapUiMediumMarginBottom">
+			</MessageStrip>
+        <Table
+            id="idTableFatture"
+            growing="true"
+            growingThreshold="20"
+            growingTriggerText="Carica altro"
+            mode="MultiSelect"
+            items="{path: 'fattureModel>/results'}"
+            selectionChange=".onSelectionChange"
+            sticky="ColumnHeaders"
+        >
+            <columns>
+                <Column width="3rem">
+                    <Text text="Società" />
+                </Column>
+                <Column width="4rem">
+                    <Text text="Cliente" />
+                </Column>
+                <Column width="8rem">
+                    <Text text="Nominativo" />
+                </Column>
+                <Column width="6rem">
+                    <Text text="P.IVA" />
+                </Column>
+                <Column width="6rem">
+                    <Text text="C.F." />
+                </Column>
+                <Column width="4rem">
+                    <Text text="Doc Fatt" />
+                </Column>
+                <Column width="5rem">
+                    <Text text="N° Doc" />
+                </Column>
+                <Column width="6rem">
+                    <Text text="Data Registrazione" />
+                </Column>
+                <Column width="5rem">
+                    <Text text="Esercizio" />
+                </Column>
+                <Column width="6rem">
+                    <Text text="Tot Fattura" />
+                </Column>
+                <Column width="5rem">
+                    <Text text="CD Univoco" />
+                </Column>
+                <Column width="4rem">
+                    <Text text="PEC" />
+                </Column>
+                <Column width="6rem">
+                    <Text text="Esito" />
+                </Column>
+                <Column width="7rem">
+                    <Text text="Messaggio" />
+                </Column>
+                <Column width="8rem">
+                    <Text text="Azioni" />
+                </Column>
+            </columns>
+
+            <items>
+                <ColumnListItem>
+                    <cells>
+                        <Text text="{fattureModel>bukrs}" />
+                        <Link
+                            text="{fattureModel>kunnr}"
+                            press=".onNavToCliente"
+                        />
+                        <Text text="{fattureModel>CustomerName}" />
+                        <Text text="{fattureModel>stcd2}" />
+                        <Text text="{fattureModel>stcd1}" />
+                        <Link
+                            text="{fattureModel>vbeln}"
+                            press=".onNavToDocumentoVendita"
+                        />
+                        <Link
+                            text="{fattureModel>belnr}"
+                            press=".onNavToDocumento"
+                        />
+                        <Text
+                            text="{path: 'fattureModel>budat', formatter: '.formatter.formatDate'}"
+                        />
+                        <Text text="{fattureModel>gjahr}" />
+                        <ObjectNumber
+                            number="{fattureModel>wrbtr}"
+                            unit="{fattureModel>waers}"
+                        />
+                        <Text text="{fattureModel>cd_univoco}" />
+                        <Text text="{fattureModel>PEC}" />
+                        <ObjectStatus
+                            text="{fattureModel>esito}"
+                            icon="{path: 'fattureModel>esito', formatter: '.formatter.statusIcon'}"
+                            state="{path: 'fattureModel>esito', formatter: '.formatter.statusState'}"
+                        />
+                        <Text text="{fattureModel>message}" />
+                        <HBox>
+                            <Button
+                                icon="sap-icon://show"
+                                type="Transparent"
+                                press=".onViewXML"
+                            />
+                            <!-- <Button
                                         icon="sap-icon://attachment"
                                         type="Transparent"
                                         press=".onViewXML"
                                     /> -->
-                                <Button
-                                    text="Visualizza Fattura"
-                                    type="Transparent"
-                                    press=".onShowAdvancedPDFDialog"
-                                />
-                            </HBox>
-                        </cells>
-                    </ColumnListItem>
-                </items>
-            </Table>
-            
+                            <Button
+                                text="Visualizza Fattura"
+                                type="Transparent"
+                                press=".onShowAdvancedPDFDialog"
+                            />
+                        </HBox>
+                    </cells>
+                </ColumnListItem>
+            </items>
+        </Table>
 
-            <footer>
-                <OverflowToolbar>
-                    <ToolbarSpacer />
-                    <Button
-                        id="btnInviaIntermediario"
-                        type="Accept"
-                        enabled="false"
-                        icon="sap-icon://paper-plane"
-                        text="Invia al intermediario"
-                        press=".onInvioData"
-                    />
-                </OverflowToolbar>
-            </footer>
-        </Page>
-    </mvc:View>
+        <footer>
+            <OverflowToolbar>
+                <ToolbarSpacer />
+                <Button
+                    id="btnInviaIntermediario"
+                    type="Accept"
+                    enabled="false"
+                    icon="sap-icon://paper-plane"
+                    text="Invia al intermediario"
+                    press=".onInvioData"
+                />
+            </OverflowToolbar>
+        </footer>
+    </Page>
+</mvc:View>

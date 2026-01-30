@@ -1,17 +1,9 @@
 sap.ui.define([
     "sap/ui/core/mvc/Controller",
     "sap/ui/codeeditor/CodeEditor",
-    "sap/ui/core/Fragment",
     "sap/m/Dialog",
     "sap/m/Button",
-    "sap/m/SearchField",
-    "sap/ui/core/BusyIndicator",
-    "sap/m/Token",
-    "sap/ui/comp/library",
-    "sap/ui/table/Column",
-    "sap/m/Label",
-    "sap/m/Text"
-], function (Controller, CodeEditor, Fragment, Dialog, Button, SearchField, BusyIndicator, Token, compLibrary, UIColumn, Label, Text) {
+], function (Controller, CodeEditor,  Dialog, Button) {
     "use strict";
 
     return Controller.extend("com.zeim.fatturazioneattiva.controller.Home", {
@@ -30,6 +22,9 @@ sap.ui.define([
                     Processed: 0,
                     Working: 0,
                     Error: 0
+                },
+                messageStrip: {
+                    visible: false
                 }
             });
             this.getView().setModel(oViewModel, "viewModel");
@@ -168,7 +163,7 @@ sap.ui.define([
                 this._filters.tipoFatturaFI.setVisibleInFilterBar(bIsFI);
             }
 
-            // 🔹 Svuota tutti i controlli della FilterBar
+            // Svuota tutti i controlli della FilterBar
             const oFilterBar = this.byId("filterBar");
             if (oFilterBar) {
                 oFilterBar.getFilterGroupItems().forEach(item => {
@@ -185,11 +180,11 @@ sap.ui.define([
                 });
             }
 
-            // 🔹 Aggiorna modello di stato
+            // Aggiorna modello di stato
             const oViewModel = this.getView().getModel("viewModel");
             oViewModel.setProperty("/currentFlow", sKey);
 
-            // 🔹 Aggiorna grafica FilterBar e reset tabella
+            // Aggiorna grafica FilterBar e reset tabella
             this.oFilterBar.invalidate();
             this.oFilterBar.rerender();
 
@@ -197,7 +192,7 @@ sap.ui.define([
             this.getView().getModel("fattureModel").setData({ results: [] });
             this._updateCounts();
 
-            // 🔹 Ricollega la tabella al nuovo flusso
+            // Ricollega la tabella al nuovo flusso
             this._bindTableByFlow(sKey);
         },
 
@@ -246,7 +241,7 @@ sap.ui.define([
 
         _openXmlDialog: function (sXmlContent, sFilename) {
 
-            const oCodeEditor = new sap.ui.codeeditor.CodeEditor({
+            const oCodeEditor = new CodeEditor({
                 type: "xml",
                 value: sXmlContent,
                 height: "500px",
@@ -256,7 +251,7 @@ sap.ui.define([
                 syntaxHints: true
             });
 
-            const oDialog = new sap.m.Dialog({
+            const oDialog = new Dialog({
                 title: sFilename || "Visualizza XML",
                 contentWidth: "80%",
                 contentHeight: "60%",
@@ -264,7 +259,7 @@ sap.ui.define([
                 resizable: true,
                 content: [oCodeEditor],
                 buttons: [
-                    new sap.m.Button({
+                    new Button({
                         text: "Chiudi",
                         press: function () { oDialog.close(); }
                     })
@@ -352,14 +347,14 @@ sap.ui.define([
                     content: `<iframe src="${pdfDataUrl}" width="100%" height="700px" style="border:none;"></iframe>`
                 });
 
-                const oDialog = new sap.m.Dialog({
+                const oDialog = new Dialog({
                     title: `Visualizza Fattura (${sFlow.toUpperCase()})`,
                     contentWidth: "90%",
                     contentHeight: "100%",
                     resizable: true,
                     draggable: true,
                     content: [oIframe],
-                    beginButton: new sap.m.Button({
+                    beginButton: new Button({
                         text: "Chiudi",
                         press: function () { oDialog.close(); }
                     }),
@@ -851,7 +846,72 @@ sap.ui.define([
             };
 
             loadPage();
+        },
+
+
+        onInvioData: function () {
+            var oTable = this.byId("idTableFatture");
+            var aSelectedItems = oTable.getSelectedItems();
+
+            if (!aSelectedItems.length) {
+                sap.m.MessageToast.show("Seleziona almeno una fattura.");
+                return;
+            }
+            this.getView().getModel("viewModel").setProperty("/messageStrip/visible", true);
+            var sFlowKey = this.getView().getModel("viewModel").getProperty("/currentFlow");
+            var sFlusso = sFlowKey === "fi" ? "F" : "S";
+
+            var aKeys = aSelectedItems.map(function (oItem) {
+                var oRow = oItem.getBindingContext("fattureModel").getObject();
+                return {
+                    bukrs: oRow.bukrs,
+                    belnr: oRow.belnr,
+                    gjahr: oRow.gjahr,
+                    flusso: sFlusso
+                };
+            });
+
+            var oModel = this.getOwnerComponent().getModel("testInvio");
+            var sGroupId = "invioIntermediario";
+            var sChangeSetId = "invioIntermediarioSet";
+
+            this.byId("btnInviaIntermediario").setEnabled(false);
+            oModel.setDeferredGroups([sGroupId]);
+
+            oModel.refreshSecurityToken(function () {
+                aKeys.forEach(function (oKey) {
+                    oModel.create("/ZTESTCHIAVIDOC", oKey, {
+                        groupId: sGroupId,
+                        changeSetId: sChangeSetId
+                    });
+                });
+
+                sap.m.MessageToast.show("Invio avviato per " + aKeys.length + " fatture.");
+
+                oModel.submitChanges({
+                    groupId: sGroupId,
+                    success: function () {
+                        sap.ui.core.BusyIndicator.hide();
+                        oTable.removeSelections(true);
+                        this.byId("btnInviaIntermediario").setEnabled(false);
+                        this._bindTableByFlow(sFlowKey, true);
+                        this.getView().getModel("viewModel").setProperty("/messageStrip/visible", false);
+                    }.bind(this),
+                    error: function () {
+                        sap.ui.core.BusyIndicator.hide();
+                        this.byId("btnInviaIntermediario").setEnabled(true);
+                        sap.m.MessageBox.error("Errore durante l'invio massivo.");
+                    }.bind(this)
+                });
+            }.bind(this), function () {
+                sap.ui.core.BusyIndicator.hide();
+                this.byId("btnInviaIntermediario").setEnabled(true);
+                sap.m.MessageBox.error("Impossibile ottenere CSRF token per testInvio.");
+            }.bind(this));
         }
+
+
+
 
 
 

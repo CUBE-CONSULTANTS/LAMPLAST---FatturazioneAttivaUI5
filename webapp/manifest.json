@@ -24,6 +24,15 @@
                     "localUri": "localService/metadata.xml",
                     "odataVersion": "2.0"
                 }
+            },
+            "testInvio": {
+                "uri": "/sap/opu/odata/sap/ZSB_CUSTOM_TEST/",
+                "type": "OData",
+                "settings": {
+                    "annotations": [],
+                    "localUri": "localService/metadata.xml",
+                    "odataVersion": "2.0"
+                }
             }
         },
         "crossNavigation": {
@@ -42,7 +51,7 @@
                         "dataSource": "mainService",
                         "path": "zeim_att_getlist(FLUSSO='S')/Set/$count",
                         "refresh": 1000
-                }
+                    }
                 }
             }
         }
@@ -93,6 +102,17 @@
                     "operationMode": "Server",
                     "autoExpandSelect": true,
                     "earlyRequests": true
+                }
+            },
+            "testInvio": {
+                "dataSource": "testInvio",
+                "preload": true,
+                "settings": {
+                    "operationMode": "Server",
+                    "autoExpandSelect": true,
+                    "earlyRequests": true,
+                    "useBatch": true,
+                    "defaultUpdateMethod": "POST"
                 }
             },
             "fattureModel": {
