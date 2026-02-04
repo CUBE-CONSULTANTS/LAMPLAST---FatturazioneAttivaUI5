@@ -3,7 +3,7 @@ sap.ui.define([
     "sap/ui/codeeditor/CodeEditor",
     "sap/m/Dialog",
     "sap/m/Button",
-], function (Controller, CodeEditor,  Dialog, Button) {
+], function (Controller, CodeEditor, Dialog, Button) {
     "use strict";
 
     return Controller.extend("com.zeim.fatturazioneattiva.controller.Home", {
@@ -406,11 +406,38 @@ sap.ui.define([
 
 
 
-        onSelectionChange: function () {
-            var oTable = this.byId("idTableFatture");
-            var aSelected = oTable.getSelectedItems();
-            this.byId("btnInviaIntermediario").setEnabled(aSelected.length > 0);
+        onSelectionChange: function (oEvent) {
+            const oTable = this.byId("idTableFatture");
+            const aSelectedItems = oTable.getSelectedItems();
+
+            const aValidItems = [];
+            const aInvalidItems = [];
+
+            aSelectedItems.forEach((oItem) => {
+                const oContext = oItem.getBindingContext("fattureModel");
+                const oData = oContext.getObject();
+
+                if (oData.sendable) {
+                    aValidItems.push(oItem);
+                } else {
+                    aInvalidItems.push(oItem);
+                }
+            });
+
+            // Deseleziona le righe non selezionabili
+            aInvalidItems.forEach((oItem) => {
+                oTable.setSelectedItem(oItem, false); // FUNZIONA su sap.m.Table
+            });
+
+            if (aInvalidItems.length > 0) {
+                sap.m.MessageToast.show("Alcune fatture non sono selezionabili.");
+            }
+
+            // Abilita/disabilita il bottone di invio
+            this.byId("btnInviaIntermediario").setEnabled(aValidItems.length > 0);
         },
+
+
 
         onCreateXML: function () {
             var oTable = this.byId("idTableFatture");
