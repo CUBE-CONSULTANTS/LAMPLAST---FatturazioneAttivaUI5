@@ -14,11 +14,11 @@ builder:
       afterTask: generateCachebusterInfo
       configuration:
         target:
-          url: https://my428121.s4hana.cloud.sap
+          url: https://my434419.s4hana.cloud.sap
           authenticationType: reentranceTicket # SAML support for vscode
         app:
           name: ZEIM_FATT_ATT
-          package: ZEIM
-          transport: B3QK900029
+          package: ZEIM_FIORI
+          transport: F46K900035
         exclude:
           - /test/

@@ -9,6 +9,7 @@ framework:
   version: 1.136.8
   libraries:
     - name: sap.m
+    - name: sap.ui.codeeditor
     - name: sap.ui.core
     - name: sap.ushell
     - name: themelib_sap_horizon
@@ -32,7 +33,7 @@ server:
         backend:
           - authenticationType: reentranceTicket # SAML support for vscode
             path: /sap
-            url: https://my428121.s4hana.cloud.sap/
+            url: https://my428106.s4hana.cloud.sap/
     - name: sap-fe-mockserver
       beforeMiddleware: csp
       configuration:

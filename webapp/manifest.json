@@ -24,15 +24,6 @@
                     "localUri": "localService/metadata.xml",
                     "odataVersion": "2.0"
                 }
-            },
-            "testInvio": {
-                "uri": "/sap/opu/odata/sap/ZSB_CUSTOM_TEST/",
-                "type": "OData",
-                "settings": {
-                    "annotations": [],
-                    "localUri": "localService/metadata.xml",
-                    "odataVersion": "2.0"
-                }
             }
         },
         "crossNavigation": {
@@ -46,11 +37,17 @@
                     "signature": {
                         "parameters": {},
                         "additionalParameters": "allowed"
-                    },
-                    "indicatorDataSource": {
-                        "dataSource": "mainService",
-                        "path": "zeim_att_getlist(FLUSSO='S')/Set/$count",
-                        "refresh": 1000
+                    }
+                },
+                "zreversecharge-display": {
+                    "semanticObject": "ZEIMATTIVA",
+                    "action": "reverseCharge",
+                    "title": "{{flpTitle2}}",
+                    "subTitle": "{{flpSubtitle2}}",
+                    "icon": "sap-icon://activate",
+                    "signature": {
+                        "parameters": {},
+                        "additionalParameters": "allowed"
                     }
                 }
             }
@@ -102,17 +99,6 @@
                     "operationMode": "Server",
                     "autoExpandSelect": true,
                     "earlyRequests": true
-                }
-            },
-            "testInvio": {
-                "dataSource": "testInvio",
-                "preload": true,
-                "settings": {
-                    "operationMode": "Server",
-                    "autoExpandSelect": true,
-                    "earlyRequests": true,
-                    "useBatch": true,
-                    "defaultUpdateMethod": "POST"
                 }
             },
             "fattureModel": {
@@ -207,6 +193,11 @@
             "viewName": "com.zeim.fatturazioneattiva.view.App",
             "type": "XML",
             "id": "App"
+        },
+        "services": {
+            "ShellUIService": {
+                "factoryName": "sap.ushell.ui5service.ShellUIService"
+            }
         }
     }
 }

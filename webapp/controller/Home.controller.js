@@ -13,8 +13,6 @@ sap.ui.define([
             var oMultiInput = this.byId("multiInput");
             this._oMultiInput = oMultiInput;
 
-            //this.byId("multiInput").addValidator(this._onMultiInputValidate.bind(this));
-
             var oViewModel = new sap.ui.model.json.JSONModel({
                 currentFlow: "sd",
                 counts: {
@@ -29,7 +27,6 @@ sap.ui.define([
             });
             this.getView().setModel(oViewModel, "viewModel");
 
-            // modello dedicato per la tabella
             var oFattureModel = new sap.ui.model.json.JSONModel({ results: [] });
             this.getView().setModel(oFattureModel, "fattureModel");
 
@@ -51,7 +48,6 @@ sap.ui.define([
                 tipoFatturaFI: aFGI.find(f => f.getName() === "Tipo Fattura FI")
             };
 
-            // Mostra solo SD all'avvio
             if (this._filters.tipoFatturaSD) {
                 this._filters.tipoFatturaSD.setVisibleInFilterBar(true);
             }
@@ -59,9 +55,40 @@ sap.ui.define([
                 this._filters.tipoFatturaFI.setVisibleInFilterBar(false);
             }
 
-            const aCurrent = this.getView().getModel("fattureModel").getProperty("/results") || [];
-            const iSkip = aCurrent.length;
-            this._bindTableByFlow("sd", 100, iSkip);
+            this._adaptUiByIntent();
+
+            this._bindTableByFlow("sd", true);
+        },
+
+        _getIntentAction: function () {
+            return this.getOwnerComponent().getModel("appModel")?.getProperty("/intent/action") || "";
+        },
+
+        _isReverseCharge: function () {
+            return this._getIntentAction() === "reverseCharge";
+        },
+
+        _adaptUiByIntent: function () {
+            if (!this._isReverseCharge()) return;
+
+            const oViewModel = this.getView().getModel("viewModel");
+            oViewModel.setProperty("/currentFlow", "sd");
+
+            if (this._filters.tipoFatturaSD) this._filters.tipoFatturaSD.setVisibleInFilterBar(true);
+            if (this._filters.tipoFatturaFI) this._filters.tipoFatturaFI.setVisibleInFilterBar(false);
+
+            const oSegmented = this.byId("idSegmentedBtn");
+            if (oSegmented) {
+                oSegmented.setSelectedKey("sd");
+            }
+        },
+
+        _getListPath: function (sFlowKey) {
+            if (this._isReverseCharge()) {
+                return "/zeim_att_rv_getlist(FLUSSO='X')/Set";
+            }
+            const sFlussoParam = sFlowKey === "fi" ? "F" : "S";
+            return `/zeim_att_getlist(FLUSSO='${sFlussoParam}')/Set`;
         },
 
         _bindTableByFlow: function (sFlowKey, bReset = true) {
@@ -81,8 +108,7 @@ sap.ui.define([
 
             if (!this._pagination.hasMore || this._pagination.isLoading) return;
 
-            const sFlussoParam = sFlowKey === "fi" ? "F" : "S";
-            const sPath = `/zeim_att_getlist(FLUSSO='${sFlussoParam}')/Set`;
+            const sPath = this._getListPath(sFlowKey);
 
             this._pagination.isLoading = true;
             sap.ui.core.BusyIndicator.show(0);
@@ -129,9 +155,6 @@ sap.ui.define([
             });
         },
 
-
-
-
         _updateCounts: function () {
             const oFattureModel = this.getView().getModel("fattureModel");
             const aFatture = oFattureModel.getProperty("/results") || [];
@@ -147,15 +170,13 @@ sap.ui.define([
             oViewModel.setProperty("/counts", oCounts);
         },
 
-
-
-
         onSegmentChange: function (oEvent) {
+            if (this._isReverseCharge()) return;
+
             const sKey = oEvent.getParameter("item").getKey();
             const bIsSD = sKey === "sd";
             const bIsFI = sKey === "fi";
 
-            // Mostra / nascondi campi specifici
             if (this._filters.tipoFatturaSD) {
                 this._filters.tipoFatturaSD.setVisibleInFilterBar(bIsSD);
             }
@@ -163,7 +184,6 @@ sap.ui.define([
                 this._filters.tipoFatturaFI.setVisibleInFilterBar(bIsFI);
             }
 
-            // Svuota tutti i controlli della FilterBar
             const oFilterBar = this.byId("filterBar");
             if (oFilterBar) {
                 oFilterBar.getFilterGroupItems().forEach(item => {
@@ -180,24 +200,17 @@ sap.ui.define([
                 });
             }
 
-            // Aggiorna modello di stato
             const oViewModel = this.getView().getModel("viewModel");
             oViewModel.setProperty("/currentFlow", sKey);
 
-            // Aggiorna grafica FilterBar e reset tabella
             this.oFilterBar.invalidate();
             this.oFilterBar.rerender();
 
-            // Svuota la tabella e i contatori
             this.getView().getModel("fattureModel").setData({ results: [] });
             this._updateCounts();
 
-            // Ricollega la tabella al nuovo flusso
-            this._bindTableByFlow(sKey);
+            this._bindTableByFlow(sKey, true);
         },
-
-
-
 
         onViewXML: function (oEvent) {
             const oContext = oEvent.getSource().getBindingContext("fattureModel");
@@ -210,8 +223,8 @@ sap.ui.define([
             const sBukrs = oRow.bukrs;
             const sBelnr = oRow.belnr;
             const sGjahr = oRow.gjahr;
-            //const sVbeln = oRow.vbeln;
-            const sFlusso = this.getView().getModel("viewModel").getProperty("/currentFlow") === "fi" ? "F" : "S";
+            const bIsRC = this._isReverseCharge();
+            const sFlusso = bIsRC ? "X" : (this.getView().getModel("viewModel").getProperty("/currentFlow") === "fi" ? "F" : "S");
 
             const oModel = this.getOwnerComponent().getModel("mainService");
 
@@ -270,11 +283,7 @@ sap.ui.define([
             oDialog.open();
         },
 
-
-
-
         onShowAdvancedPDFDialog: async function (oEvent) {
-            // Usa il binding context corretto (mainService)
             const oContext = oEvent.getSource().getBindingContext("fattureModel");
             if (!oContext) {
                 sap.m.MessageToast.show("Impossibile determinare il contesto della riga selezionata.");
@@ -282,47 +291,29 @@ sap.ui.define([
             }
 
             const oData = oContext.getObject();
-            const sFlow = this.getView().getModel("viewModel").getProperty("/currentFlow"); // "sd" o "fi"
-            const oDataModel = this.getOwnerComponent().getModel("mainService"); // OData principale
+            const sFlow = this.getView().getModel("viewModel").getProperty("/currentFlow");
+            const bIsRC = this._isReverseCharge();
+            const sFlusso = bIsRC ? "X" : (sFlow === "fi" ? "F" : "S");
+            const oDataModel = this.getOwnerComponent().getModel("mainService");
 
-            let sPath = "";
+            const sBukrs = oData.bukrs;
+            const sBelnr = oData.belnr;
+            const sGjahr = oData.gjahr;
 
-            // === FLUSSO SD ===
-            if (sFlow === "sd") {
-                const sBillingDocument = oData.vbeln; // campo corretto OData
-                if (!sBillingDocument) {
-                    sap.m.MessageToast.show("Numero documento mancante (vbeln).");
-                    return;
-                }
-                const sBukrs = oData.bukrs;
-                const sBelnr = oData.belnr;
-                const sGjahr = oData.gjahr;
-                const sflusso = oData.FLUSSO
-                // costruisci dinamicamente il path per la function import
-                sPath = `/ZEIM_GetPDFAccountingDocument(bukrs='${sBukrs}',belnr='${sBelnr}',gjahr='${sGjahr}',FLUSSO='${sflusso}')`;
-            }
-
-            // === FLUSSO FI ===
-            else if (sFlow === "fi") {
-                const sBukrs = oData.bukrs;
-                const sBelnr = oData.belnr;
-                const sGjahr = oData.gjahr;
-                const sflusso = oData.FLUSSO
-
-                if (!sBukrs || !sBelnr || !sGjahr) {
-                    sap.m.MessageBox.warning("Dati incompleti per la chiamata PDF FI (bukrs/belnr/gjahr mancanti).");
-                    return;
-                }
-
-                // path dinamico
-                sPath = `/ZEIM_GetPDFAccountingDocument(bukrs='${sBukrs}',belnr='${sBelnr}',gjahr='${sGjahr}',FLUSSO='${sflusso}')`;
-            }
-
-            // === CONTROLLO PATH ===
-            if (!sPath) {
-                sap.m.MessageToast.show("Impossibile determinare il percorso per la chiamata PDF.");
+            if (!sBukrs || !sBelnr || !sGjahr) {
+                sap.m.MessageBox.warning("Dati incompleti per la chiamata PDF (bukrs/belnr/gjahr mancanti).");
                 return;
             }
+
+            // if (sFlow === "sd") {
+            //     const sBillingDocument = oData.vbeln;
+            //     if (!sBillingDocument) {
+            //         sap.m.MessageToast.show("Numero documento mancante (vbeln).");
+            //         return;
+            //     }
+            // }
+
+            const sPath = `/ZEIM_GetPDFAccountingDocument(bukrs='${sBukrs}',belnr='${sBelnr}',gjahr='${sGjahr}',FLUSSO='${sFlusso}')`;
 
             sap.ui.core.BusyIndicator.show(0);
 
@@ -341,14 +332,13 @@ sap.ui.define([
                     return;
                 }
 
-                // Creazione iframe per anteprima PDF
                 const pdfDataUrl = "data:application/pdf;base64," + oResponse.base64;
                 const oIframe = new sap.ui.core.HTML({
                     content: `<iframe src="${pdfDataUrl}" width="100%" height="700px" style="border:none;"></iframe>`
                 });
 
                 const oDialog = new Dialog({
-                    title: `Visualizza Fattura (${sFlow.toUpperCase()})`,
+                    title: `Visualizza Fattura (${bIsRC ? "RC" : sFlow.toUpperCase()})`,
                     contentWidth: "90%",
                     contentHeight: "100%",
                     resizable: true,
@@ -373,14 +363,12 @@ sap.ui.define([
         },
 
 
-
         onIconTabSelect: function (oEvent) {
             const sKey = oEvent.getParameter("key");
             const oTable = this.byId("idTableFatture");
             const oBinding = oTable.getBinding("items");
             if (!oBinding) return;
 
-            // costruisco il filtro per la colonna "esito"
             let aTabFilters = [];
             switch (sKey) {
                 case "Processed":
@@ -394,17 +382,12 @@ sap.ui.define([
                     break;
                 case "All":
                 default:
-                    aTabFilters = []; // rimuove filtro tab
+                    aTabFilters = [];
             }
 
             oBinding.filter(aTabFilters, sap.ui.model.FilterType.Application);
-
-            // aggiorna i contatori dopo il nuovo caricamento
             oBinding.attachEventOnce("dataReceived", this._updateCounts.bind(this));
         },
-
-
-
 
         onSelectionChange: function (oEvent) {
             const oTable = this.byId("idTableFatture");
@@ -424,20 +407,16 @@ sap.ui.define([
                 }
             });
 
-            // Deseleziona le righe non selezionabili
             aInvalidItems.forEach((oItem) => {
-                oTable.setSelectedItem(oItem, false); // FUNZIONA su sap.m.Table
+                oTable.setSelectedItem(oItem, false);
             });
 
             if (aInvalidItems.length > 0) {
                 sap.m.MessageToast.show("Alcune fatture non sono selezionabili.");
             }
 
-            // Abilita/disabilita il bottone di invio
             this.byId("btnInviaIntermediario").setEnabled(aValidItems.length > 0);
         },
-
-
 
         onCreateXML: function () {
             var oTable = this.byId("idTableFatture");
@@ -457,45 +436,6 @@ sap.ui.define([
             });
         },
 
-        // _onMultiInputValidate: function (oArgs) {
-        //     const oInput = oArgs.sender; // l'input che ha invocato la validazione
-        //     const sModel = oInput.data("model");
-        //     const sKeyProp = oInput.data("key");
-        //     const sDescProp = oInput.data("desc");
-
-        //     const oSuggestion = oArgs.suggestionObject;
-
-        //     // Caso 1: Nessun suggerimento (token libero)
-        //     if (!oSuggestion || !oSuggestion.getBindingContext) {
-        //         return new sap.m.Token({
-        //             key: oArgs.text,
-        //             text: oArgs.text
-        //         });
-        //     }
-
-        //     const oContext = oSuggestion.getBindingContext(sModel);
-        //     if (!oContext) {
-        //         return new sap.m.Token({
-        //             key: oArgs.text,
-        //             text: oArgs.text
-        //         });
-        //     }
-
-        //     const oObj = oContext.getObject();
-        //     if (!oObj[sKeyProp] || !oObj[sDescProp]) {
-        //         return new sap.m.Token({
-        //             key: oArgs.text,
-        //             text: oArgs.text
-        //         });
-        //     }
-
-        //     return new sap.m.Token({
-        //         key: oObj[sKeyProp],
-        //         text: `${oObj[sDescProp]} (${oObj[sKeyProp]})`
-        //     });
-        // },
-
-
         onValueHelpClienti: function () {
             sap.ui.require([
                 "com/zeim/fatturazioneattiva/controller/helpers/ValueHelpHandler"
@@ -509,7 +449,7 @@ sap.ui.define([
                         key: "Customer",
                         desc: "OrganizationBPName1",
                         keyProp: "Customer",
-                        maxKeyLength: 10, // regola: oltre 10 char non filtrare su Customer
+                        maxKeyLength: 10,
                         filterProps: ["Customer", "OrganizationBPName1", "CityName"],
                         columns: [
                             { label: "Cliente", path: "Customer" },
@@ -569,6 +509,7 @@ sap.ui.define([
                 );
             }.bind(this));
         },
+
         onValueHelpTipoFatturaFI: function () {
             sap.ui.require([
                 "com/zeim/fatturazioneattiva/controller/helpers/ValueHelpHandler"
@@ -593,7 +534,6 @@ sap.ui.define([
             }.bind(this));
         },
 
-
         formatter: {
             statusState: function (sEsito) {
                 if (!sEsito) return "None";
@@ -615,7 +555,6 @@ sap.ui.define([
                 return "sap-icon://question-mark";
             },
 
-
             formatDate: function (sDate) {
                 if (!sDate) return "";
                 const oDate = new Date(sDate);
@@ -623,9 +562,6 @@ sap.ui.define([
                 return oFormat.format(oDate);
             }
         },
-
-
-
 
         onNavToCliente: async function (oEvent) {
             try {
@@ -666,7 +602,6 @@ sap.ui.define([
             }
         },
 
-
         onNavToDocumento: async function (oEvent) {
             try {
                 const oContext = oEvent.getSource().getBindingContext("fattureModel");
@@ -678,7 +613,7 @@ sap.ui.define([
                 const oData = oContext.getObject();
                 const belnr = oData.belnr;
                 const bukrs = oData.bukrs;
-                const gjahr = oData.gjahr
+                const gjahr = oData.gjahr;
 
                 const Navigation = await sap.ushell.Container.getServiceAsync("Navigation");
 
@@ -691,11 +626,8 @@ sap.ui.define([
                         AccountingDocument: belnr,
                         CompanyCode: bukrs,
                         FiscalYear: gjahr
-
                     }
                 });
-
-                console.log(" Navigazione FLP:", sHref);
 
                 window.open(sHref, "_blank");
             } catch (err) {
@@ -716,7 +648,6 @@ sap.ui.define([
 
                 const oCrossAppNav = await sap.ushell.Container.getServiceAsync("CrossApplicationNavigation");
 
-                // Hash generato dal FLP
                 const sHash = oCrossAppNav.hrefForExternal({
                     target: {
                         semanticObject: "BillingDocument",
@@ -727,18 +658,14 @@ sap.ui.define([
                     }
                 });
 
-                // Se serve mantenere un navigation-scope-filter (come F7697)
                 const sScopeFilter = "sap-navigation-scope-filter=F7697";
 
-                // Costruzione URL finale (identico stile di onNavToCliente)
                 const sFullUrl =
                     window.location.origin +
                     "/ui" +
                     sHash +
                     "&sap-app-origin-hint=&" +
                     sScopeFilter;
-
-                console.log("URL finale:", sFullUrl);
 
                 window.open(sFullUrl, "_blank");
 
@@ -747,8 +674,6 @@ sap.ui.define([
                 sap.m.MessageBox.error("Impossibile aprire il documento di vendita.");
             }
         },
-
-
 
         onFilterBarSearch: function () {
             const mainService = this.getOwnerComponent().getModel("mainService");
@@ -790,6 +715,7 @@ sap.ui.define([
             if (socSelect?.getSelectedKey()) {
                 filters.push(new sap.ui.model.Filter("bukrs", "EQ", socSelect.getSelectedKey()));
             }
+
             const inputDocumento = this.byId("inputDocumento");
             if (inputDocumento) {
                 const docValue = inputDocumento.getValue()?.trim();
@@ -799,26 +725,29 @@ sap.ui.define([
             }
 
             const flow = viewModel.getProperty("/currentFlow");
-            if (flow === "sd") {
-                const tipoSD = this.byId("multiInputTipoFatturaSD");
-                if (tipoSD) {
-                    const tokens = tipoSD.getTokens().map(t => t.getKey() || t.getText());
-                    if (tokens.length) {
-                        filters.push(new sap.ui.model.Filter({
-                            filters: tokens.map(v => new sap.ui.model.Filter("fkart", "EQ", v)),
-                            and: false
-                        }));
+
+            if (!this._isReverseCharge()) {
+                if (flow === "sd") {
+                    const tipoSD = this.byId("multiInputTipoFatturaSD");
+                    if (tipoSD) {
+                        const tokens = tipoSD.getTokens().map(t => t.getKey() || t.getText());
+                        if (tokens.length) {
+                            filters.push(new sap.ui.model.Filter({
+                                filters: tokens.map(v => new sap.ui.model.Filter("fkart", "EQ", v)),
+                                and: false
+                            }));
+                        }
                     }
-                }
-            } else if (flow === "fi") {
-                const tipoFI = this.byId("multiInputTipoFatturaFI");
-                if (tipoFI) {
-                    const tokens = tipoFI.getTokens().map(t => t.getKey() || t.getText());
-                    if (tokens.length) {
-                        filters.push(new sap.ui.model.Filter({
-                            filters: tokens.map(v => new sap.ui.model.Filter("blart", "EQ", v)),
-                            and: false
-                        }));
+                } else if (flow === "fi") {
+                    const tipoFI = this.byId("multiInputTipoFatturaFI");
+                    if (tipoFI) {
+                        const tokens = tipoFI.getTokens().map(t => t.getKey() || t.getText());
+                        if (tokens.length) {
+                            filters.push(new sap.ui.model.Filter({
+                                filters: tokens.map(v => new sap.ui.model.Filter("blart", "EQ", v)),
+                                and: false
+                            }));
+                        }
                     }
                 }
             }
@@ -838,8 +767,7 @@ sap.ui.define([
                 }
             }
 
-            const sFlussoParam = flow === "fi" ? "F" : "S";
-            const sPath = `/zeim_att_getlist(FLUSSO='${sFlussoParam}')/Set`;
+            const sPath = this._getListPath(flow);
 
             const PAGE_SIZE = 50;
             let skip = 0;
@@ -858,7 +786,7 @@ sap.ui.define([
 
                         if (results.length === PAGE_SIZE) {
                             skip += PAGE_SIZE;
-                            loadPage(); // continua finché ci sono pagine
+                            loadPage();
                         } else {
                             fattureModel.setData({ results: allResults });
                             this._updateCounts();
@@ -875,7 +803,6 @@ sap.ui.define([
             loadPage();
         },
 
-
         onInvioData: function () {
             var oTable = this.byId("idTableFatture");
             var aSelectedItems = oTable.getSelectedItems();
@@ -886,7 +813,8 @@ sap.ui.define([
             }
             this.getView().getModel("viewModel").setProperty("/messageStrip/visible", true);
             var sFlowKey = this.getView().getModel("viewModel").getProperty("/currentFlow");
-            var sFlusso = sFlowKey === "fi" ? "F" : "S";
+            var bIsRC = this._isReverseCharge();
+            var sFlusso = bIsRC ? "X" : (sFlowKey === "fi" ? "F" : "S");
 
             var aKeys = aSelectedItems.map(function (oItem) {
                 var oRow = oItem.getBindingContext("fattureModel").getObject();
@@ -936,12 +864,6 @@ sap.ui.define([
                 sap.m.MessageBox.error("Impossibile ottenere CSRF token per testInvio.");
             }.bind(this));
         }
-
-
-
-
-
-
 
     });
 });

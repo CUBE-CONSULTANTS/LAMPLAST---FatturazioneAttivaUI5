@@ -10,7 +10,7 @@
     xmlns:vh="sap.ui.comp.valuehelpdialog"
 >
     <Page showHeader="false">
-        <Panel>
+        <Panel visible="{appModel>/ui/showSegmented}">
             <FlexBox
                 alignItems="Start"
                 justifyContent="Center"
@@ -19,6 +19,7 @@
                     id="idSegmentedBtn"
                     selectionChange=".onSegmentChange"
                     selectedKey="sd"
+                    visible="{appModel>/ui/showSegmented}"
                 >
                     <items>
                         <SegmentedButtonItem
@@ -176,7 +177,7 @@
 
                     <fb:FilterGroupItem
                         name="Tipo Fattura SD"
-                        label="Tipo Fattura SD"
+                        label="{appModel>/ui/tipoFatturaSdLabel}"
                         groupName="General"
                         visibleInFilterBar="true"
                     >
