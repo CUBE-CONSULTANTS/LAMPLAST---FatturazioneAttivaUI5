@@ -170,7 +170,7 @@ sap.ui.define([
             oViewModel.setProperty("/counts", oCounts);
         },
 
-        onSegmentChange: function (oEvent) {
+        onSegmentedButtonSelectionChange: function (oEvent) {
             if (this._isReverseCharge()) return;
 
             const sKey = oEvent.getParameter("item").getKey();
@@ -720,7 +720,7 @@ sap.ui.define([
             if (inputDocumento) {
                 const docValue = inputDocumento.getValue()?.trim();
                 if (docValue) {
-                    filters.push(new sap.ui.model.Filter("belnr", "EQ", docValue));
+                    filters.push(new sap.ui.model.Filter("belnr", "Contains", docValue));
                 }
             }
 
@@ -811,13 +811,16 @@ sap.ui.define([
                 sap.m.MessageToast.show("Seleziona almeno una fattura.");
                 return;
             }
+
             this.getView().getModel("viewModel").setProperty("/messageStrip/visible", true);
+
             var sFlowKey = this.getView().getModel("viewModel").getProperty("/currentFlow");
             var bIsRC = this._isReverseCharge();
             var sFlusso = bIsRC ? "X" : (sFlowKey === "fi" ? "F" : "S");
 
             var aKeys = aSelectedItems.map(function (oItem) {
                 var oRow = oItem.getBindingContext("fattureModel").getObject();
+
                 return {
                     bukrs: oRow.bukrs,
                     belnr: oRow.belnr,
@@ -826,16 +829,26 @@ sap.ui.define([
                 };
             });
 
-            var oModel = this.getOwnerComponent().getModel("testInvio");
+            var oModel = this.getOwnerComponent().getModel("mainService");
+
+            if (!oModel) {
+                this.getView().getModel("viewModel").setProperty("/messageStrip/visible", false);
+                this.byId("btnInviaIntermediario").setEnabled(true);
+                sap.m.MessageBox.error("Model mainService non trovato.");
+                return;
+            }
+
             var sGroupId = "invioIntermediario";
             var sChangeSetId = "invioIntermediarioSet";
 
             this.byId("btnInviaIntermediario").setEnabled(false);
+            sap.ui.core.BusyIndicator.show(0);
+
             oModel.setDeferredGroups([sGroupId]);
 
             oModel.refreshSecurityToken(function () {
                 aKeys.forEach(function (oKey) {
-                    oModel.create("/ZTESTCHIAVIDOC", oKey, {
+                    oModel.create("/ZEIM_INVIO_INTERMEDIARIO", oKey, {
                         groupId: sGroupId,
                         changeSetId: sChangeSetId
                     });
@@ -847,23 +860,117 @@ sap.ui.define([
                     groupId: sGroupId,
                     success: function () {
                         sap.ui.core.BusyIndicator.hide();
+
                         oTable.removeSelections(true);
                         this.byId("btnInviaIntermediario").setEnabled(false);
                         this._bindTableByFlow(sFlowKey, true);
                         this.getView().getModel("viewModel").setProperty("/messageStrip/visible", false);
                     }.bind(this),
-                    error: function () {
+
+                    error: function (oError) {
                         sap.ui.core.BusyIndicator.hide();
+
                         this.byId("btnInviaIntermediario").setEnabled(true);
+                        this.getView().getModel("viewModel").setProperty("/messageStrip/visible", false);
+
+                        console.error("Errore durante l'invio massivo:", oError);
                         sap.m.MessageBox.error("Errore durante l'invio massivo.");
                     }.bind(this)
                 });
             }.bind(this), function () {
                 sap.ui.core.BusyIndicator.hide();
+
                 this.byId("btnInviaIntermediario").setEnabled(true);
-                sap.m.MessageBox.error("Impossibile ottenere CSRF token per testInvio.");
+                this.getView().getModel("viewModel").setProperty("/messageStrip/visible", false);
+
+                sap.m.MessageBox.error("Impossibile ottenere CSRF token.");
             }.bind(this));
-        }
+        },
+
+        onButtonRiceviEsitoPress: function (oEvent) {
+            var oContext = oEvent.getSource().getBindingContext("fattureModel");
+
+            if (!oContext) {
+                sap.m.MessageToast.show("Impossibile determinare la fattura selezionata.");
+                return;
+            }
+
+            var oRow = oContext.getObject();
+
+            var sNumeroFattura = oRow.belnr;
+            var sDataFattura = this._formatDateForBackend(oRow.budat);
+
+            if (!sNumeroFattura || !sDataFattura) {
+                sap.m.MessageBox.warning("Numero fattura o data fattura mancanti.");
+                return;
+            }
+
+            var oModel = this.getOwnerComponent().getModel("mainService");
+
+            if (!oModel) {
+                sap.m.MessageBox.error("Model mainService non trovato.");
+                return;
+            }
+
+            var oPayload = {
+                belnr: sNumeroFattura,
+                budat: sDataFattura
+            };
+
+            sap.ui.core.BusyIndicator.show(0);
+
+            oModel.create("/ZEIM_RECUPERO_STATO_FATTURA", oPayload, {
+                success: function () {
+                    sap.ui.core.BusyIndicator.hide();
+
+                    sap.m.MessageToast.show("Recupero esito fattura avviato correttamente.");
+
+                    var sFlowKey = this.getView().getModel("viewModel").getProperty("/currentFlow");
+                    this._bindTableByFlow(sFlowKey, true);
+                }.bind(this),
+
+                error: function (oError) {
+                    sap.ui.core.BusyIndicator.hide();
+
+                    console.error("Errore recupero esito fattura:", oError);
+
+                    var sMessage = "Errore durante il recupero esito fattura.";
+
+                    try {
+                        var oResponse = JSON.parse(oError.responseText);
+                        sMessage = oResponse.error?.message?.value || oResponse.error?.message || sMessage;
+                    } catch (e) {
+                        if (oError.responseText) {
+                            sMessage = oError.responseText;
+                        }
+                    }
+
+                    sap.m.MessageBox.error(sMessage);
+                }
+            });
+        },
+
+        _formatDateForBackend: function (vDate) {
+            if (!vDate) {
+                return "";
+            }
+
+            if (typeof vDate === "string") {
+                if (vDate.includes("T")) {
+                    return vDate.split("T")[0];
+                }
+
+                return vDate;
+            }
+
+            var oDate = new Date(vDate);
+
+            var sYear = oDate.getFullYear();
+            var sMonth = String(oDate.getMonth() + 1).padStart(2, "0");
+            var sDay = String(oDate.getDate()).padStart(2, "0");
+
+            return sYear + "-" + sMonth + "-" + sDay;
+        },
 
     });
 });

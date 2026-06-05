@@ -17,7 +17,7 @@
             >
                 <SegmentedButton
                     id="idSegmentedBtn"
-                    selectionChange=".onSegmentChange"
+                    selectionChange=".onSegmentedButtonSelectionChange"
                     selectedKey="sd"
                     visible="{appModel>/ui/showSegmented}"
                 >
@@ -272,13 +272,13 @@
                 />
             </items>
         </IconTabBar>
-			<MessageStrip
-				text="Le fatture selezionate sono in fase di invio all'intermediario. Si prega di aggiornare la lista tra qualche minuto per verificare lo stato di invio."
-				showIcon="true"
-				showCloseButton="true"
-                visible="{= ${viewModel>/messageStrip/visible} }"
-				class="sapUiMediumMarginBottom">
-			</MessageStrip>
+        <MessageStrip
+            text="Le fatture selezionate sono in fase di invio all'intermediario. Si prega di aggiornare la lista tra qualche minuto per verificare lo stato di invio."
+            showIcon="true"
+            showCloseButton="true"
+            visible="{= ${viewModel>/messageStrip/visible} }"
+            class="sapUiMediumMarginBottom"
+        />
         <Table
             id="idTableFatture"
             growing="true"
@@ -296,7 +296,7 @@
                 <Column width="4rem">
                     <Text text="Cliente" />
                 </Column>
-                <Column width="8rem">
+                <Column width="6rem">
                     <Text text="Nominativo" />
                 </Column>
                 <Column width="6rem">
@@ -308,16 +308,16 @@
                 <Column width="4rem">
                     <Text text="Doc Fatt" />
                 </Column>
-                <Column width="5rem">
+                <Column width="4.5rem">
                     <Text text="N° Doc" />
                 </Column>
-                <Column width="6rem">
-                    <Text text="Data Registrazione" />
+                <Column width="4.5rem">
+                    <Text text="Data Reg" />
                 </Column>
-                <Column width="5rem">
+                <Column width="4rem">
                     <Text text="Esercizio" />
                 </Column>
-                <Column width="6rem">
+                <Column width="5rem">
                     <Text text="Tot Fattura" />
                 </Column>
                 <Column width="5rem">
@@ -329,7 +329,7 @@
                 <Column width="6rem">
                     <Text text="Esito" />
                 </Column>
-                <Column width="7rem">
+                <Column width="5rem">
                     <Text text="Messaggio" />
                 </Column>
                 <Column width="8rem">
@@ -378,15 +378,16 @@
                                 type="Transparent"
                                 press=".onViewXML"
                             />
-                            <!-- <Button
-                                        icon="sap-icon://attachment"
-                                        type="Transparent"
-                                        press=".onViewXML"
-                                    /> -->
                             <Button
                                 text="Visualizza Fattura"
                                 type="Transparent"
                                 press=".onShowAdvancedPDFDialog"
+                            />
+                            <Button
+                                icon="sap-icon://process"
+                                tooltip="Ricevi Esito"
+                                type="Accept"
+                                press=".onButtonRiceviEsitoPress"
                             />
                         </HBox>
                     </cells>
