@@ -390,32 +390,128 @@ sap.ui.define([
         },
 
         onSelectionChange: function (oEvent) {
-            const oTable = this.byId("idTableFatture");
-            const aSelectedItems = oTable.getSelectedItems();
-
-            const aValidItems = [];
-            const aInvalidItems = [];
-
-            aSelectedItems.forEach((oItem) => {
-                const oContext = oItem.getBindingContext("fattureModel");
-                const oData = oContext.getObject();
-
-                if (oData.sendable) {
-                    aValidItems.push(oItem);
-                } else {
-                    aInvalidItems.push(oItem);
-                }
-            });
-
-            aInvalidItems.forEach((oItem) => {
-                oTable.setSelectedItem(oItem, false);
-            });
-
-            if (aInvalidItems.length > 0) {
-                sap.m.MessageToast.show("Alcune fatture non sono selezionabili.");
+            if (this._bChangingSelection) {
+                return;
             }
 
-            this.byId("btnInviaIntermediario").setEnabled(aValidItems.length > 0);
+            const oTable = this.byId("idTableFatture");
+            const oButton = this.byId("btnInviaIntermediario");
+
+            const bSelectAll = oEvent.getParameter("selectAll");
+            const oItem = oEvent.getParameter("listItem");
+            const bSelected = oEvent.getParameter("selected");
+
+            this._bChangingSelection = true;
+
+            try {
+                if (bSelectAll) {
+                    this._handleSelectAllSendable(oTable);
+                    oButton.setEnabled(oTable.getSelectedItems().length > 0);
+                    return;
+                }
+
+                if (!oItem) {
+                    this._updateInvioIntermediarioButton();
+                    return;
+                }
+
+                const oContext = oItem.getBindingContext("fattureModel");
+
+                if (!oContext) {
+                    this._updateInvioIntermediarioButton();
+                    return;
+                }
+
+                const oData = oContext.getObject();
+
+                if (bSelected && !this._isFatturaSendable(oData)) {
+                    oTable.setSelectedItem(oItem, false);
+                    sap.m.MessageToast.show("Questa fattura non è selezionabile.");
+                    this._updateInvioIntermediarioButton();
+                    return;
+                }
+
+                if (bSelected && this._isFatturaSendable(oData)) {
+                    oButton.setEnabled(true);
+                    return;
+                }
+
+                this._updateInvioIntermediarioButton();
+
+            } finally {
+                this._bChangingSelection = false;
+            }
+        },
+
+        _handleSelectAllSendable: function (oTable) {
+            if (this._bSendableSelectAllActive) {
+                oTable.removeSelections(true);
+                this._bSendableSelectAllActive = false;
+                return;
+            }
+
+            oTable.removeSelections(true);
+
+            oTable.getItems().forEach(function (oItem) {
+                const oContext = oItem.getBindingContext("fattureModel");
+
+                if (!oContext) {
+                    return;
+                }
+
+                const oData = oContext.getObject();
+
+                if (this._isFatturaSendable(oData)) {
+                    oTable.setSelectedItem(oItem, true);
+                }
+            }.bind(this));
+
+            this._bSendableSelectAllActive = true;
+
+            sap.m.MessageToast.show("Sono state selezionate solo le fatture inviabili.");
+        },
+
+        _updateInvioIntermediarioButton: function () {
+            const oTable = this.byId("idTableFatture");
+            const oButton = this.byId("btnInviaIntermediario");
+
+            const bHasValidSelection = oTable.getSelectedItems().some(function (oItem) {
+                const oContext = oItem.getBindingContext("fattureModel");
+
+                if (!oContext) {
+                    return false;
+                }
+
+                const oData = oContext.getObject();
+
+                return this._isFatturaSendable(oData);
+            }.bind(this));
+
+            oButton.setEnabled(bHasValidSelection);
+        },
+
+        _isFatturaSendable: function (oData) {
+            return oData.sendable === true || oData.sendable === "true";
+        },
+
+        _areAllVisibleSendableItemsSelected: function (oTable) {
+            const aSendableItems = oTable.getItems().filter(function (oItem) {
+                const oContext = oItem.getBindingContext("fattureModel");
+
+                if (!oContext) {
+                    return false;
+                }
+
+                return this._isFatturaSendable(oContext.getObject());
+            }.bind(this));
+
+            if (aSendableItems.length === 0) {
+                return false;
+            }
+
+            return aSendableItems.every(function (oItem) {
+                return oTable.isSelectedItem(oItem);
+            });
         },
 
         onCreateXML: function () {
@@ -805,10 +901,18 @@ sap.ui.define([
 
         onInvioData: function () {
             var oTable = this.byId("idTableFatture");
-            var aSelectedItems = oTable.getSelectedItems();
+            var aSelectedItems = oTable.getSelectedItems().filter(function (oItem) {
+                var oContext = oItem.getBindingContext("fattureModel");
+
+                if (!oContext) {
+                    return false;
+                }
+
+                return this._isFatturaSendable(oContext.getObject());
+            }.bind(this));
 
             if (!aSelectedItems.length) {
-                sap.m.MessageToast.show("Seleziona almeno una fattura.");
+                sap.m.MessageToast.show("Seleziona almeno una fattura inviabile.");
                 return;
             }
 
@@ -861,9 +965,13 @@ sap.ui.define([
                     success: function () {
                         sap.ui.core.BusyIndicator.hide();
 
+                        this._bSendableSelectAllActive = false;
+
                         oTable.removeSelections(true);
-                        this.byId("btnInviaIntermediario").setEnabled(false);
+                        this._updateInvioIntermediarioButton();
+
                         this._bindTableByFlow(sFlowKey, true);
+
                         this.getView().getModel("viewModel").setProperty("/messageStrip/visible", false);
                     }.bind(this),
 
