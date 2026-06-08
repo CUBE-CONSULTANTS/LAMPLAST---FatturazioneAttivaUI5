@@ -3,13 +3,13 @@ sap.ui.define([
     "sap/ui/codeeditor/CodeEditor",
     "sap/m/Dialog",
     "sap/m/Button",
-], function (Controller, CodeEditor, Dialog, Button) {
+    "sap/ui/export/Spreadsheet"
+], function (Controller, CodeEditor, Dialog, Button, Spreadsheet) {
     "use strict";
 
     return Controller.extend("com.zeim.fatturazioneattiva.controller.Home", {
 
         onInit: function () {
-
             var oMultiInput = this.byId("multiInput");
             this._oMultiInput = oMultiInput;
 
@@ -51,12 +51,12 @@ sap.ui.define([
             if (this._filters.tipoFatturaSD) {
                 this._filters.tipoFatturaSD.setVisibleInFilterBar(true);
             }
+
             if (this._filters.tipoFatturaFI) {
                 this._filters.tipoFatturaFI.setVisibleInFilterBar(false);
             }
 
             this._adaptUiByIntent();
-
             this._bindTableByFlow("sd", true);
         },
 
@@ -87,6 +87,7 @@ sap.ui.define([
             if (this._isReverseCharge()) {
                 return "/zeim_att_rv_getlist(FLUSSO='X')/Set";
             }
+
             const sFlussoParam = sFlowKey === "fi" ? "F" : "S";
             return `/zeim_att_getlist(FLUSSO='${sFlussoParam}')/Set`;
         },
@@ -103,7 +104,10 @@ sap.ui.define([
                     hasMore: true,
                     isLoading: false
                 };
+
                 oFattureModel.setData({ results: [] });
+                this._clearTableSelection();
+                this._updateInvioIntermediarioButton();
             }
 
             if (!this._pagination.hasMore || this._pagination.isLoading) return;
@@ -180,6 +184,7 @@ sap.ui.define([
             if (this._filters.tipoFatturaSD) {
                 this._filters.tipoFatturaSD.setVisibleInFilterBar(bIsSD);
             }
+
             if (this._filters.tipoFatturaFI) {
                 this._filters.tipoFatturaFI.setVisibleInFilterBar(bIsFI);
             }
@@ -207,7 +212,9 @@ sap.ui.define([
             this.oFilterBar.rerender();
 
             this.getView().getModel("fattureModel").setData({ results: [] });
+            this._clearTableSelection();
             this._updateCounts();
+            this._updateInvioIntermediarioButton();
 
             this._bindTableByFlow(sKey, true);
         },
@@ -227,7 +234,6 @@ sap.ui.define([
             const sFlusso = bIsRC ? "X" : (this.getView().getModel("viewModel").getProperty("/currentFlow") === "fi" ? "F" : "S");
 
             const oModel = this.getOwnerComponent().getModel("mainService");
-
             const sPath = `/ZEIM_ATT_FATTURA_XML(bukrs='${sBukrs}',belnr='${sBelnr}',gjahr='${sGjahr}',flusso='${sFlusso}')`;
 
             sap.ui.core.BusyIndicator.show(0);
@@ -253,7 +259,6 @@ sap.ui.define([
         },
 
         _openXmlDialog: function (sXmlContent, sFilename) {
-
             const oCodeEditor = new CodeEditor({
                 type: "xml",
                 value: sXmlContent,
@@ -274,10 +279,14 @@ sap.ui.define([
                 buttons: [
                     new Button({
                         text: "Chiudi",
-                        press: function () { oDialog.close(); }
+                        press: function () {
+                            oDialog.close();
+                        }
                     })
                 ],
-                afterClose: function () { oDialog.destroy(); }
+                afterClose: function () {
+                    oDialog.destroy();
+                }
             });
 
             oDialog.open();
@@ -304,14 +313,6 @@ sap.ui.define([
                 sap.m.MessageBox.warning("Dati incompleti per la chiamata PDF (bukrs/belnr/gjahr mancanti).");
                 return;
             }
-
-            // if (sFlow === "sd") {
-            //     const sBillingDocument = oData.vbeln;
-            //     if (!sBillingDocument) {
-            //         sap.m.MessageToast.show("Numero documento mancante (vbeln).");
-            //         return;
-            //     }
-            // }
 
             const sPath = `/ZEIM_GetPDFAccountingDocument(bukrs='${sBukrs}',belnr='${sBelnr}',gjahr='${sGjahr}',FLUSSO='${sFlusso}')`;
 
@@ -346,9 +347,13 @@ sap.ui.define([
                     content: [oIframe],
                     beginButton: new Button({
                         text: "Chiudi",
-                        press: function () { oDialog.close(); }
+                        press: function () {
+                            oDialog.close();
+                        }
                     }),
-                    afterClose: function () { oDialog.destroy(); }
+                    afterClose: function () {
+                        oDialog.destroy();
+                    }
                 });
 
                 oDialog.open();
@@ -362,14 +367,15 @@ sap.ui.define([
             }
         },
 
-
         onIconTabSelect: function (oEvent) {
             const sKey = oEvent.getParameter("key");
             const oTable = this.byId("idTableFatture");
-            const oBinding = oTable.getBinding("items");
+            const oBinding = oTable.getBinding("rows");
+
             if (!oBinding) return;
 
             let aTabFilters = [];
+
             switch (sKey) {
                 case "Processed":
                     aTabFilters = [new sap.ui.model.Filter("esito", sap.ui.model.FilterOperator.EQ, "Completato")];
@@ -385,8 +391,10 @@ sap.ui.define([
                     aTabFilters = [];
             }
 
+            this._clearTableSelection();
+            this._updateInvioIntermediarioButton();
+
             oBinding.filter(aTabFilters, sap.ui.model.FilterType.Application);
-            oBinding.attachEventOnce("dataReceived", this._updateCounts.bind(this));
         },
 
         onSelectionChange: function (oEvent) {
@@ -395,45 +403,67 @@ sap.ui.define([
             }
 
             const oTable = this.byId("idTableFatture");
-            const oButton = this.byId("btnInviaIntermediario");
-
             const bSelectAll = oEvent.getParameter("selectAll");
-            const oItem = oEvent.getParameter("listItem");
-            const bSelected = oEvent.getParameter("selected");
 
             this._bChangingSelection = true;
 
             try {
                 if (bSelectAll) {
-                    this._handleSelectAllSendable(oTable);
-                    oButton.setEnabled(oTable.getSelectedItems().length > 0);
-                    return;
-                }
+                    if (this._bSendableSelectAllActive) {
+                        oTable.clearSelection();
+                        this._bSendableSelectAllActive = false;
+                        this._updateInvioIntermediarioButton();
+                        return;
+                    }
 
-                if (!oItem) {
+                    oTable.clearSelection();
+
+                    const oBinding = oTable.getBinding("rows");
+                    const iLength = oBinding ? oBinding.getLength() : 0;
+
+                    for (let i = 0; i < iLength; i++) {
+                        const oContext = oTable.getContextByIndex(i);
+
+                        if (!oContext) {
+                            continue;
+                        }
+
+                        const oData = oContext.getObject();
+
+                        if (this._isFatturaSendable(oData)) {
+                            oTable.addSelectionInterval(i, i);
+                        }
+                    }
+
+                    this._bSendableSelectAllActive = true;
                     this._updateInvioIntermediarioButton();
+
+                    sap.m.MessageToast.show("Sono state selezionate solo le fatture inviabili.");
                     return;
                 }
 
-                const oContext = oItem.getBindingContext("fattureModel");
+                this._bSendableSelectAllActive = false;
 
-                if (!oContext) {
-                    this._updateInvioIntermediarioButton();
-                    return;
-                }
+                const aSelectedIndices = oTable.getSelectedIndices();
+                let bRemovedInvalidSelection = false;
 
-                const oData = oContext.getObject();
+                aSelectedIndices.forEach(function (iIndex) {
+                    const oContext = oTable.getContextByIndex(iIndex);
 
-                if (bSelected && !this._isFatturaSendable(oData)) {
-                    oTable.setSelectedItem(oItem, false);
-                    sap.m.MessageToast.show("Questa fattura non è selezionabile.");
-                    this._updateInvioIntermediarioButton();
-                    return;
-                }
+                    if (!oContext) {
+                        return;
+                    }
 
-                if (bSelected && this._isFatturaSendable(oData)) {
-                    oButton.setEnabled(true);
-                    return;
+                    const oData = oContext.getObject();
+
+                    if (!this._isFatturaSendable(oData)) {
+                        oTable.removeSelectionInterval(iIndex, iIndex);
+                        bRemovedInvalidSelection = true;
+                    }
+                }.bind(this));
+
+                if (bRemovedInvalidSelection) {
+                    sap.m.MessageToast.show("Sono selezionabili solo le fatture inviabili.");
                 }
 
                 this._updateInvioIntermediarioButton();
@@ -443,85 +473,64 @@ sap.ui.define([
             }
         },
 
-        _handleSelectAllSendable: function (oTable) {
-            if (this._bSendableSelectAllActive) {
-                oTable.removeSelections(true);
-                this._bSendableSelectAllActive = false;
-                return;
+        _getSelectedFattureFromTable: function () {
+            const oTable = this.byId("idTableFatture");
+
+            if (!oTable) {
+                return [];
             }
 
-            oTable.removeSelections(true);
+            const aSelectedIndices = oTable.getSelectedIndices();
 
-            oTable.getItems().forEach(function (oItem) {
-                const oContext = oItem.getBindingContext("fattureModel");
+            return aSelectedIndices.map(function (iIndex) {
+                const oContext = oTable.getContextByIndex(iIndex);
 
                 if (!oContext) {
-                    return;
+                    return null;
                 }
 
-                const oData = oContext.getObject();
+                return {
+                    index: iIndex,
+                    data: oContext.getObject()
+                };
+            }).filter(Boolean);
+        },
 
-                if (this._isFatturaSendable(oData)) {
-                    oTable.setSelectedItem(oItem, true);
-                }
-            }.bind(this));
+        _clearTableSelection: function () {
+            const oTable = this.byId("idTableFatture");
 
-            this._bSendableSelectAllActive = true;
+            this._bSendableSelectAllActive = false;
 
-            sap.m.MessageToast.show("Sono state selezionate solo le fatture inviabili.");
+            if (oTable && oTable.clearSelection) {
+                oTable.clearSelection();
+            }
         },
 
         _updateInvioIntermediarioButton: function () {
-            const oTable = this.byId("idTableFatture");
             const oButton = this.byId("btnInviaIntermediario");
 
-            const bHasValidSelection = oTable.getSelectedItems().some(function (oItem) {
-                const oContext = oItem.getBindingContext("fattureModel");
+            if (!oButton) {
+                return;
+            }
 
-                if (!oContext) {
-                    return false;
-                }
-
-                const oData = oContext.getObject();
-
-                return this._isFatturaSendable(oData);
+            const bHasValidSelection = this._getSelectedFattureFromTable().some(function (oSelected) {
+                return this._isFatturaSendable(oSelected.data);
             }.bind(this));
 
             oButton.setEnabled(bHasValidSelection);
         },
 
         _isFatturaSendable: function (oData) {
-            return oData.sendable === true || oData.sendable === "true";
-        },
-
-        _areAllVisibleSendableItemsSelected: function (oTable) {
-            const aSendableItems = oTable.getItems().filter(function (oItem) {
-                const oContext = oItem.getBindingContext("fattureModel");
-
-                if (!oContext) {
-                    return false;
-                }
-
-                return this._isFatturaSendable(oContext.getObject());
-            }.bind(this));
-
-            if (aSendableItems.length === 0) {
-                return false;
-            }
-
-            return aSendableItems.every(function (oItem) {
-                return oTable.isSelectedItem(oItem);
-            });
+            return oData && (oData.sendable === true || oData.sendable === "true");
         },
 
         onCreateXML: function () {
-            var oTable = this.byId("idTableFatture");
-            var aSelectedItems = oTable.getSelectedItems();
+            var aSelectedRows = this._getSelectedFattureFromTable();
 
-            aSelectedItems.forEach(function (oItem, index) {
-                var oContext = oItem.getBindingContext("fattureModel");
-                var sXmlContent = oContext.getProperty("XmlContent");
-                var sCliente = oContext.getProperty("Cliente");
+            aSelectedRows.forEach(function (oSelected, index) {
+                var oRow = oSelected.data;
+                var sXmlContent = oRow.XmlContent;
+                var sCliente = oRow.Cliente || oRow.kunnr || "";
 
                 var sFileName = "fattura_" + sCliente + "_" + index + ".xml";
                 var blob = new Blob([sXmlContent], { type: "application/xml" });
@@ -624,7 +633,7 @@ sap.ui.define([
                             { label: "Tipo Fattura", path: "AccountingDocumentType" },
                             { label: "Descrizione", path: "AccountingDocumentType_Text" }
                         ],
-                        multiInputId: "multiInputTipoFatturaSD"
+                        multiInputId: "multiInputTipoFatturaFI"
                     }
                 );
             }.bind(this));
@@ -669,6 +678,7 @@ sap.ui.define([
 
                 const oData = oContext.getObject();
                 const sKunnr = oData.kunnr;
+
                 if (!sKunnr) {
                     sap.m.MessageToast.show("Cliente (KUNNR) non disponibile.");
                     return;
@@ -687,7 +697,6 @@ sap.ui.define([
                 });
 
                 const sEntityPath = `/C_BusinessPartnerCustomer(BusinessPartner='${sKunnr}',DraftUUID=guid'00000000-0000-0000-0000-000000000000',IsActiveEntity=true)`;
-
                 const sFullUrl = window.location.origin + "/ui" + sHash + "&sap-app-origin-hint=&" + sEntityPath;
 
                 window.open(sFullUrl, "_blank");
@@ -726,6 +735,7 @@ sap.ui.define([
                 });
 
                 window.open(sHref, "_blank");
+
             } catch (err) {
                 console.error("Errore nella navigazione Cross-App:", err);
             }
@@ -755,13 +765,7 @@ sap.ui.define([
                 });
 
                 const sScopeFilter = "sap-navigation-scope-filter=F7697";
-
-                const sFullUrl =
-                    window.location.origin +
-                    "/ui" +
-                    sHash +
-                    "&sap-app-origin-hint=&" +
-                    sScopeFilter;
+                const sFullUrl = window.location.origin + "/ui" + sHash + "&sap-app-origin-hint=&" + sScopeFilter;
 
                 window.open(sFullUrl, "_blank");
 
@@ -869,6 +873,9 @@ sap.ui.define([
             let skip = 0;
             let allResults = [];
 
+            this._clearTableSelection();
+            this._updateInvioIntermediarioButton();
+
             const loadPage = () => {
                 mainService.read(sPath, {
                     filters: filters,
@@ -900,18 +907,15 @@ sap.ui.define([
         },
 
         onInvioData: function () {
-            var oTable = this.byId("idTableFatture");
-            var aSelectedItems = oTable.getSelectedItems().filter(function (oItem) {
-                var oContext = oItem.getBindingContext("fattureModel");
+            var aSelectedRows = this._getSelectedFattureFromTable()
+                .map(function (oSelected) {
+                    return oSelected.data;
+                })
+                .filter(function (oRow) {
+                    return this._isFatturaSendable(oRow);
+                }.bind(this));
 
-                if (!oContext) {
-                    return false;
-                }
-
-                return this._isFatturaSendable(oContext.getObject());
-            }.bind(this));
-
-            if (!aSelectedItems.length) {
+            if (!aSelectedRows.length) {
                 sap.m.MessageToast.show("Seleziona almeno una fattura inviabile.");
                 return;
             }
@@ -922,9 +926,7 @@ sap.ui.define([
             var bIsRC = this._isReverseCharge();
             var sFlusso = bIsRC ? "X" : (sFlowKey === "fi" ? "F" : "S");
 
-            var aKeys = aSelectedItems.map(function (oItem) {
-                var oRow = oItem.getBindingContext("fattureModel").getObject();
-
+            var aKeys = aSelectedRows.map(function (oRow) {
                 return {
                     bukrs: oRow.bukrs,
                     belnr: oRow.belnr,
@@ -967,7 +969,7 @@ sap.ui.define([
 
                         this._bSendableSelectAllActive = false;
 
-                        oTable.removeSelections(true);
+                        this._clearTableSelection();
                         this._updateInvioIntermediarioButton();
 
                         this._bindTableByFlow(sFlowKey, true);
@@ -1058,6 +1060,50 @@ sap.ui.define([
             });
         },
 
+        onExportExcel: function () {
+            var oModel = this.getView().getModel("fattureModel");
+            var aData = oModel.getProperty("/results") || [];
+
+            if (!aData.length) {
+                sap.m.MessageToast.show("Nessun dato da esportare.");
+                return;
+            }
+
+            var aColumns = [
+                { label: "Società", property: "bukrs" },
+                { label: "Cliente", property: "kunnr" },
+                { label: "Nominativo", property: "CustomerName" },
+                { label: "P.IVA", property: "stcd2" },
+                { label: "C.F.", property: "stcd1" },
+                { label: "Doc Fatt", property: "vbeln" },
+                { label: "N° Doc", property: "belnr" },
+                { label: "Data Reg", property: "budat" },
+                { label: "Esercizio", property: "gjahr" },
+                { label: "Tot Fattura", property: "wrbtr", type: "number" },
+                { label: "Valuta", property: "waers" },
+                { label: "CD Univoco", property: "cd_univoco" },
+                { label: "PEC", property: "PEC" },
+                { label: "Esito", property: "esito" },
+                { label: "Messaggio", property: "message" }
+            ];
+
+            var oSettings = {
+                workbook: {
+                    columns: aColumns
+                },
+                dataSource: aData,
+                fileName: "Cruscotto_Fatture.xlsx",
+                worker: false
+            };
+
+            var oSpreadsheet = new Spreadsheet(oSettings);
+
+            oSpreadsheet.build()
+                .finally(function () {
+                    oSpreadsheet.destroy();
+                });
+        },
+
         _formatDateForBackend: function (vDate) {
             if (!vDate) {
                 return "";
@@ -1078,6 +1124,85 @@ sap.ui.define([
             var sDay = String(oDate.getDate()).padStart(2, "0");
 
             return sYear + "-" + sMonth + "-" + sDay;
+        },
+
+        _getColumnLayoutConfig: function () {
+            return [
+                { id: "colBukrs", text: "Società" },
+                { id: "colKunnr", text: "Cliente" },
+                { id: "colCustomerName", text: "Nominativo" },
+                { id: "colStcd2", text: "P.IVA" },
+                { id: "colStcd1", text: "C.F." },
+                { id: "colVbeln", text: "Doc Fatt" },
+                { id: "colBelnr", text: "N° Doc" },
+                { id: "colBudat", text: "Data Reg" },
+                { id: "colGjahr", text: "Esercizio" },
+                { id: "colWrbtr", text: "Tot Fattura" },
+                { id: "colCdUnivoco", text: "CD Univoco" },
+                { id: "colPec", text: "PEC" },
+                { id: "colEsito", text: "Esito" },
+                { id: "colMessage", text: "Messaggio" },
+                { id: "colAzioni", text: "Azioni" }
+            ];
+        },
+
+        onOpenColumnLayoutDialog: function () {
+            var aConfig = this._getColumnLayoutConfig();
+
+            var oList = new sap.m.List({
+                mode: "MultiSelect",
+                includeItemInSelection: true
+            });
+
+            aConfig.forEach(function (oColumnConfig) {
+                var oColumn = this.byId(oColumnConfig.id);
+
+                if (!oColumn) {
+                    return;
+                }
+
+                oList.addItem(new sap.m.StandardListItem({
+                    title: oColumnConfig.text,
+                    selected: oColumn.getVisible()
+                }).data("columnId", oColumnConfig.id));
+            }.bind(this));
+
+            var oDialog = new sap.m.Dialog({
+                title: "Layout colonne",
+                contentWidth: "420px",
+                contentHeight: "520px",
+                resizable: true,
+                draggable: true,
+                content: [oList],
+                beginButton: new sap.m.Button({
+                    text: "Applica",
+                    type: "Emphasized",
+                    press: function () {
+                        oList.getItems().forEach(function (oItem) {
+                            var sColumnId = oItem.data("columnId");
+                            var oColumn = this.byId(sColumnId);
+
+                            if (oColumn) {
+                                oColumn.setVisible(oItem.getSelected());
+                            }
+                        }.bind(this));
+
+                        oDialog.close();
+                    }.bind(this)
+                }),
+                endButton: new sap.m.Button({
+                    text: "Annulla",
+                    press: function () {
+                        oDialog.close();
+                    }
+                }),
+                afterClose: function () {
+                    oDialog.destroy();
+                }
+            });
+
+            this.getView().addDependent(oDialog);
+            oDialog.open();
         },
 
     });

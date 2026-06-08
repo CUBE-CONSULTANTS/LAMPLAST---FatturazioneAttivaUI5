@@ -4,6 +4,7 @@
     xmlns="sap.m"
     xmlns:core="sap.ui.core"
     xmlns:f="sap.f"
+    xmlns:t="sap.ui.table"
     xmlns:card="sap.f.cards"
     xmlns:form="sap.ui.layout.form"
     xmlns:fb="sap.ui.comp.filterbar"
@@ -279,110 +280,241 @@
             visible="{= ${viewModel>/messageStrip/visible} }"
             class="sapUiMediumMarginBottom"
         />
-        <Table
+        <t:Table
             id="idTableFatture"
-            growing="true"
-            growingThreshold="20"
-            growingTriggerText="Carica altro"
-            mode="MultiSelect"
-            items="{path: 'fattureModel>/results'}"
-            selectionChange=".onSelectionChange"
-            sticky="ColumnHeaders"
+            rows="{fattureModel>/results}"
+            selectionMode="MultiToggle"
+            selectionBehavior="RowSelector"
+            visibleRowCountMode="Auto"
+            minAutoRowCount="10"
+            enableColumnReordering="true"
+            enableCellFilter="true"
+            rowSelectionChange=".onSelectionChange"
+            class="sapUiSmallMarginTop"
         >
-            <columns>
-                <Column width="3rem">
-                    <Text text="Società" />
-                </Column>
-                <Column width="4rem">
-                    <Text text="Cliente" />
-                </Column>
-                <Column width="6rem">
-                    <Text text="Nominativo" />
-                </Column>
-                <Column width="6rem">
-                    <Text text="P.IVA" />
-                </Column>
-                <Column width="6rem">
-                    <Text text="C.F." />
-                </Column>
-                <Column width="4rem">
-                    <Text text="Doc Fatt" />
-                </Column>
-                <Column width="4.5rem">
-                    <Text text="N° Doc" />
-                </Column>
-                <Column width="4.5rem">
-                    <Text text="Data Reg" />
-                </Column>
-                <Column width="4rem">
-                    <Text text="Esercizio" />
-                </Column>
-                <Column width="5rem">
-                    <Text text="Tot Fattura" />
-                </Column>
-                <Column width="5rem">
-                    <Text text="CD Univoco" />
-                </Column>
-                <Column width="4rem">
-                    <Text text="PEC" />
-                </Column>
-                <Column width="6rem">
-                    <Text text="Esito" />
-                </Column>
-                <Column width="5rem">
-                    <Text text="Messaggio" />
-                </Column>
-                <Column width="8rem">
-                    <Text text="Azioni" />
-                </Column>
-            </columns>
+            <t:extension>
+                <OverflowToolbar>
+                    <Title text="Cruscotto fatture" />
+                    <ToolbarSpacer />
+                    <Button
+                        icon="sap-icon://action-settings"
+                        text="Layout colonne"
+                        press=".onOpenColumnLayoutDialog"
+                    />
+                    <Button
+                        icon="sap-icon://excel-attachment"
+                        text="Esporta Excel"
+                        press=".onExportExcel"
+                    />
+                </OverflowToolbar>
+            </t:extension>
 
-            <items>
-                <ColumnListItem>
-                    <cells>
+            <t:columns>
+                <t:Column
+                    id="colBukrs"
+                    width="6rem"
+                    sortProperty="bukrs"
+                    filterProperty="bukrs"
+                >
+                    <Label text="Società" />
+                    <t:template>
                         <Text text="{fattureModel>bukrs}" />
+                    </t:template>
+                </t:Column>
+
+                <t:Column
+                    id="colKunnr"
+                    width="7rem"
+                    sortProperty="kunnr"
+                    filterProperty="kunnr"
+                >
+                    <Label text="Cliente" />
+                    <t:template>
                         <Link
                             text="{fattureModel>kunnr}"
                             press=".onNavToCliente"
                         />
+                    </t:template>
+                </t:Column>
+
+                <t:Column
+                    id="colCustomerName"
+                    width="12rem"
+                    sortProperty="CustomerName"
+                    filterProperty="CustomerName"
+                >
+                    <Label text="Nominativo" />
+                    <t:template>
                         <Text text="{fattureModel>CustomerName}" />
+                    </t:template>
+                </t:Column>
+
+                <t:Column
+                    id="colStcd2"
+                    width="9rem"
+                    sortProperty="stcd2"
+                    filterProperty="stcd2"
+                >
+                    <Label text="P.IVA" />
+                    <t:template>
                         <Text text="{fattureModel>stcd2}" />
+                    </t:template>
+                </t:Column>
+
+                <t:Column
+                    id="colStcd1"
+                    width="9rem"
+                    sortProperty="stcd1"
+                    filterProperty="stcd1"
+                >
+                    <Label text="C.F." />
+                    <t:template>
                         <Text text="{fattureModel>stcd1}" />
+                    </t:template>
+                </t:Column>
+
+                <t:Column
+                    id="colVbeln"
+                    width="8rem"
+                    sortProperty="vbeln"
+                    filterProperty="vbeln"
+                >
+                    <Label text="Doc Fatt" />
+                    <t:template>
                         <Link
                             text="{fattureModel>vbeln}"
                             press=".onNavToDocumentoVendita"
                         />
+                    </t:template>
+                </t:Column>
+
+                <t:Column
+                    id="colBelnr"
+                    width="8rem"
+                    sortProperty="belnr"
+                    filterProperty="belnr"
+                >
+                    <Label text="N° Doc" />
+                    <t:template>
                         <Link
                             text="{fattureModel>belnr}"
                             press=".onNavToDocumento"
                         />
+                    </t:template>
+                </t:Column>
+
+                <t:Column
+                    id="colBudat"
+                    width="8rem"
+                    sortProperty="budat"
+                    filterProperty="budat"
+                >
+                    <Label text="Data Reg" />
+                    <t:template>
                         <Text
                             text="{path: 'fattureModel>budat', formatter: '.formatter.formatDate'}"
                         />
+                    </t:template>
+                </t:Column>
+
+                <t:Column
+                    id="colGjahr"
+                    width="6rem"
+                    sortProperty="gjahr"
+                    filterProperty="gjahr"
+                >
+                    <Label text="Esercizio" />
+                    <t:template>
                         <Text text="{fattureModel>gjahr}" />
+                    </t:template>
+                </t:Column>
+
+                <t:Column
+                    id="colWrbtr"
+                    width="9rem"
+                    sortProperty="wrbtr"
+                    filterProperty="wrbtr"
+                >
+                    <Label text="Tot Fattura" />
+                    <t:template>
                         <ObjectNumber
                             number="{fattureModel>wrbtr}"
                             unit="{fattureModel>waers}"
                         />
+                    </t:template>
+                </t:Column>
+
+                <t:Column
+                    id="colCdUnivoco"
+                    width="9rem"
+                    sortProperty="cd_univoco"
+                    filterProperty="cd_univoco"
+                >
+                    <Label text="CD Univoco" />
+                    <t:template>
                         <Text text="{fattureModel>cd_univoco}" />
+                    </t:template>
+                </t:Column>
+
+                <t:Column
+                    id="colPec"
+                    width="12rem"
+                    sortProperty="PEC"
+                    filterProperty="PEC"
+                >
+                    <Label text="PEC" />
+                    <t:template>
                         <Text text="{fattureModel>PEC}" />
+                    </t:template>
+                </t:Column>
+
+                <t:Column
+                    id="colEsito"
+                    width="10rem"
+                    sortProperty="esito"
+                    filterProperty="esito"
+                >
+                    <Label text="Esito" />
+                    <t:template>
                         <ObjectStatus
                             text="{fattureModel>esito}"
                             icon="{path: 'fattureModel>esito', formatter: '.formatter.statusIcon'}"
                             state="{path: 'fattureModel>esito', formatter: '.formatter.statusState'}"
                         />
+                    </t:template>
+                </t:Column>
+
+                <t:Column
+                    id="colMessage"
+                    width="14rem"
+                    sortProperty="message"
+                    filterProperty="message"
+                >
+                    <Label text="Messaggio" />
+                    <t:template>
                         <Text text="{fattureModel>message}" />
+                    </t:template>
+                </t:Column>
+
+                <t:Column
+                    id="colAzioni"
+                    width="16rem"
+                >
+                    <Label text="Azioni" />
+                    <t:template>
                         <HBox>
                             <Button
                                 icon="sap-icon://show"
                                 type="Transparent"
                                 press=".onViewXML"
                             />
+
                             <Button
                                 text="Visualizza Fattura"
                                 type="Transparent"
                                 press=".onShowAdvancedPDFDialog"
                             />
+
                             <Button
                                 icon="sap-icon://process"
                                 tooltip="Ricevi Esito"
@@ -390,10 +522,10 @@
                                 press=".onButtonRiceviEsitoPress"
                             />
                         </HBox>
-                    </cells>
-                </ColumnListItem>
-            </items>
-        </Table>
+                    </t:template>
+                </t:Column>
+            </t:columns>
+        </t:Table>
 
         <footer>
             <OverflowToolbar>
