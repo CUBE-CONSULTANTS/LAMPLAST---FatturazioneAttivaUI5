@@ -44,7 +44,9 @@
                 persistencyKey="myPersKey"
                 useToolbar="false"
                 search=".onFilterBarSearch"
+                clear="onFilterBarClear"
                 showGoOnFB="true"
+                showClearOnFB="true"
                 isRunningInValueHelpDialog="false"
             >
                 <fb:filterGroupItems>
@@ -76,16 +78,30 @@
                         </fb:control>
                     </fb:FilterGroupItem>
                     <fb:FilterGroupItem
-                        name="document"
+                        name="NrDocumento"
                         label="Nr. Documento"
-                        groupName="NrDocumento"
-                        visibleInFilterBar="true"
+                        groupName="General"
+                        visibleInFilterBar="false"
                     >
                         <fb:control>
                             <Input
                                 id="inputDocumento"
                                 width="300px"
-                                type="Number"
+                                type="Text"
+                            />
+                        </fb:control>
+                    </fb:FilterGroupItem>
+                    <fb:FilterGroupItem
+                        name="DocFattura"
+                        label="Doc. Fattura"
+                        groupName="General"
+                        visibleInFilterBar="true"
+                    >
+                        <fb:control>
+                            <Input
+                                id="inputDocFattura"
+                                width="300px"
+                                type="Text"
                             />
                         </fb:control>
                     </fb:FilterGroupItem>
@@ -295,6 +311,15 @@
             <t:extension>
                 <OverflowToolbar>
                     <Title text="Cruscotto fatture" />
+
+                    <VariantManagement
+                        id="variantManagement"
+                        standardItemText="Standard"
+                        showSetAsDefault="true"
+                        save=".onVariantSave"
+                        select=".onVariantSelect"
+                        manage=".onVariantManage"
+                    />
                     <ToolbarSpacer />
                     <Button
                         icon="sap-icon://action-settings"
@@ -312,7 +337,7 @@
             <t:columns>
                 <t:Column
                     id="colBukrs"
-                    width="6rem"
+                    width="4rem"
                     sortProperty="bukrs"
                     filterProperty="bukrs"
                 >
@@ -324,7 +349,7 @@
 
                 <t:Column
                     id="colKunnr"
-                    width="7rem"
+                    width="5.5rem"
                     sortProperty="kunnr"
                     filterProperty="kunnr"
                 >
@@ -339,7 +364,7 @@
 
                 <t:Column
                     id="colCustomerName"
-                    width="12rem"
+                    width="7rem"
                     sortProperty="CustomerName"
                     filterProperty="CustomerName"
                 >
@@ -375,7 +400,7 @@
 
                 <t:Column
                     id="colVbeln"
-                    width="8rem"
+                    width="7rem"
                     sortProperty="vbeln"
                     filterProperty="vbeln"
                 >
@@ -390,7 +415,7 @@
 
                 <t:Column
                     id="colBelnr"
-                    width="8rem"
+                    width="7rem"
                     sortProperty="belnr"
                     filterProperty="belnr"
                 >
@@ -405,7 +430,7 @@
 
                 <t:Column
                     id="colBudat"
-                    width="8rem"
+                    width="6rem"
                     sortProperty="budat"
                     filterProperty="budat"
                 >
@@ -419,7 +444,7 @@
 
                 <t:Column
                     id="colGjahr"
-                    width="6rem"
+                    width="5rem"
                     sortProperty="gjahr"
                     filterProperty="gjahr"
                 >
@@ -431,7 +456,7 @@
 
                 <t:Column
                     id="colWrbtr"
-                    width="9rem"
+                    width="7rem"
                     sortProperty="wrbtr"
                     filterProperty="wrbtr"
                 >
@@ -446,7 +471,7 @@
 
                 <t:Column
                     id="colCdUnivoco"
-                    width="9rem"
+                    width="7.5rem"
                     sortProperty="cd_univoco"
                     filterProperty="cd_univoco"
                 >
@@ -458,7 +483,7 @@
 
                 <t:Column
                     id="colPec"
-                    width="12rem"
+                    width="8rem"
                     sortProperty="PEC"
                     filterProperty="PEC"
                 >
@@ -470,7 +495,7 @@
 
                 <t:Column
                     id="colEsito"
-                    width="10rem"
+                    width="8rem"
                     sortProperty="esito"
                     filterProperty="esito"
                 >
@@ -486,7 +511,7 @@
 
                 <t:Column
                     id="colMessage"
-                    width="14rem"
+                    width="12rem"
                     sortProperty="message"
                     filterProperty="message"
                 >
@@ -516,7 +541,7 @@
                             />
 
                             <Button
-                                icon="sap-icon://process"
+                                icon="sap-icon://question-mark"
                                 tooltip="Ricevi Esito"
                                 type="Accept"
                                 press=".onButtonRiceviEsitoPress"

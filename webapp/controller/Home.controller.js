@@ -3,8 +3,9 @@ sap.ui.define([
     "sap/ui/codeeditor/CodeEditor",
     "sap/m/Dialog",
     "sap/m/Button",
-    "sap/ui/export/Spreadsheet"
-], function (Controller, CodeEditor, Dialog, Button, Spreadsheet) {
+    "sap/ui/export/Spreadsheet",
+    "sap/m/VariantItem"
+], function (Controller, CodeEditor, Dialog, Button, Spreadsheet, VariantItem) {
     "use strict";
 
     return Controller.extend("com.zeim.fatturazioneattiva.controller.Home", {
@@ -58,6 +59,7 @@ sap.ui.define([
 
             this._adaptUiByIntent();
             this._bindTableByFlow("sd", true);
+            this._initVariantManagement();
         },
 
         _getIntentAction: function () {
@@ -824,6 +826,14 @@ sap.ui.define([
                 }
             }
 
+            const inputDocFattura = this.byId("inputDocFattura");
+            if (inputDocFattura) {
+                const docFatturaValue = inputDocFattura.getValue()?.trim();
+                if (docFatturaValue) {
+                    filters.push(new sap.ui.model.Filter("vbeln", "Contains", docFatturaValue));
+                }
+            }
+
             const flow = viewModel.getProperty("/currentFlow");
 
             if (!this._isReverseCharge()) {
@@ -904,6 +914,29 @@ sap.ui.define([
             };
 
             loadPage();
+        },
+
+        onFilterBarClear: function () {
+            const oFilterBar = this.byId("filterBar");
+            if (oFilterBar) {
+                oFilterBar.getFilterGroupItems().forEach(item => {
+                    const ctrl = item.getControl();
+                    if (!ctrl) return;
+
+                    if (ctrl.isA("sap.m.MultiInput")) {
+                        ctrl.removeAllTokens();
+                    } else if (ctrl.isA("sap.m.Select")) {
+                        ctrl.setSelectedKey("");
+                    } else if (ctrl.isA("sap.m.Input")) {
+                        ctrl.setValue("");
+                    }
+                });
+            }
+
+            this.getView().getModel("fattureModel").setData({ results: [] });
+            this._clearTableSelection();
+            this._updateCounts();
+            this._updateInvioIntermediarioButton();
         },
 
         onInvioData: function () {
@@ -1204,6 +1237,212 @@ sap.ui.define([
             this.getView().addDependent(oDialog);
             oDialog.open();
         },
+
+        _getVariantStorageKey: function () {
+            var sIntent = this._isReverseCharge() ? "RC" : "STANDARD";
+            var sFlow = this.getView().getModel("viewModel").getProperty("/currentFlow") || "sd";
+
+            return "ZEIM_FATTURAZIONE_ATTIVA_VARIANTS_" + sIntent + "_" + sFlow.toUpperCase();
+        },
+
+        _getVariantData: function () {
+            var sKey = this._getVariantStorageKey();
+            var sValue = localStorage.getItem(sKey);
+
+            if (!sValue) {
+                return {
+                    variants: {},
+                    defaultVariantKey: ""
+                };
+            }
+
+            try {
+                return JSON.parse(sValue);
+            } catch (e) {
+                return {
+                    variants: {},
+                    defaultVariantKey: ""
+                };
+            }
+        },
+
+        _setVariantData: function (oData) {
+            var sKey = this._getVariantStorageKey();
+            localStorage.setItem(sKey, JSON.stringify(oData));
+        },
+
+        _initVariantManagement: function () {
+            var oVariantManagement = this.byId("variantManagement");
+
+            if (!oVariantManagement) {
+                return;
+            }
+
+            oVariantManagement.removeAllItems();
+
+            var oVariantData = this._getVariantData();
+            var aVariantKeys = Object.keys(oVariantData.variants || {});
+
+            aVariantKeys.forEach(function (sKey) {
+                var oVariant = oVariantData.variants[sKey];
+
+                oVariantManagement.addItem(new VariantItem({
+                    key: sKey,
+                    text: oVariant.name,
+                    remove: true,
+                    rename: true,
+                    changeable: true
+                }));
+            });
+
+            if (oVariantData.defaultVariantKey && oVariantData.variants[oVariantData.defaultVariantKey]) {
+                oVariantManagement.setDefaultKey(oVariantData.defaultVariantKey);
+                oVariantManagement.setSelectedKey(oVariantData.defaultVariantKey);
+
+                this._applyTableLayout(oVariantData.variants[oVariantData.defaultVariantKey].layout);
+            } else {
+                oVariantManagement.setSelectedKey("");
+            }
+        },
+
+        _getCurrentTableLayout: function () {
+            var oTable = this.byId("idTableFatture");
+
+            return {
+                columns: oTable.getColumns().map(function (oColumn, iIndex) {
+                    return {
+                        id: oColumn.getId().split("--").pop(),
+                        index: iIndex,
+                        visible: oColumn.getVisible(),
+                        width: oColumn.getWidth()
+                    };
+                })
+            };
+        },
+
+        _applyTableLayout: function (oLayout) {
+            if (!oLayout || !oLayout.columns) {
+                return;
+            }
+
+            var oTable = this.byId("idTableFatture");
+
+            oLayout.columns.forEach(function (oColumnLayout) {
+                var oColumn = this.byId(oColumnLayout.id);
+
+                if (!oColumn) {
+                    return;
+                }
+
+                if (typeof oColumnLayout.visible === "boolean") {
+                    oColumn.setVisible(oColumnLayout.visible);
+                }
+
+                if (oColumnLayout.width) {
+                    oColumn.setWidth(oColumnLayout.width);
+                }
+            }.bind(this));
+
+            oLayout.columns
+                .slice()
+                .sort(function (a, b) {
+                    return a.index - b.index;
+                })
+                .forEach(function (oColumnLayout, iTargetIndex) {
+                    var oColumn = this.byId(oColumnLayout.id);
+
+                    if (!oColumn) {
+                        return;
+                    }
+
+                    oTable.removeColumn(oColumn);
+                    oTable.insertColumn(oColumn, iTargetIndex);
+                }.bind(this));
+        },
+
+        onVariantSave: function (oEvent) {
+            var oVariantManagement = this.byId("variantManagement");
+            var oVariantData = this._getVariantData();
+
+            var sName = oEvent.getParameter("name");
+            var sKey = oEvent.getParameter("key");
+            var bOverwrite = oEvent.getParameter("overwrite");
+            var bDefault = oEvent.getParameter("def");
+
+            if (!sName && !sKey) {
+                return;
+            }
+
+            if (!sKey || !bOverwrite) {
+                sKey = "VARIANT_" + Date.now();
+            }
+
+            oVariantData.variants[sKey] = {
+                key: sKey,
+                name: sName || oVariantData.variants[sKey]?.name || "Layout",
+                layout: this._getCurrentTableLayout()
+            };
+
+            if (bDefault) {
+                oVariantData.defaultVariantKey = sKey;
+            }
+
+            this._setVariantData(oVariantData);
+            this._initVariantManagement();
+
+            oVariantManagement.setSelectedKey(sKey);
+
+            sap.m.MessageToast.show("Layout salvato.");
+        },
+
+        onVariantSelect: function (oEvent) {
+            var sKey = oEvent.getParameter("key");
+
+            if (!sKey) {
+                return;
+            }
+
+            var oVariantData = this._getVariantData();
+            var oVariant = oVariantData.variants[sKey];
+
+            if (!oVariant) {
+                return;
+            }
+
+            this._applyTableLayout(oVariant.layout);
+        },
+
+        onVariantManage: function (oEvent) {
+            var oVariantData = this._getVariantData();
+
+            var aDeleted = oEvent.getParameter("deleted") || [];
+            var aRenamed = oEvent.getParameter("renamed") || [];
+            var sDefaultKey = oEvent.getParameter("def");
+
+            aDeleted.forEach(function (sKey) {
+                delete oVariantData.variants[sKey];
+
+                if (oVariantData.defaultVariantKey === sKey) {
+                    oVariantData.defaultVariantKey = "";
+                }
+            });
+
+            aRenamed.forEach(function (oRenamed) {
+                if (oVariantData.variants[oRenamed.key]) {
+                    oVariantData.variants[oRenamed.key].name = oRenamed.name;
+                }
+            });
+
+            if (sDefaultKey && oVariantData.variants[sDefaultKey]) {
+                oVariantData.defaultVariantKey = sDefaultKey;
+            }
+
+            this._setVariantData(oVariantData);
+            this._initVariantManagement();
+
+            sap.m.MessageToast.show("Gestione layout aggiornata.");
+        },
+
 
     });
 });
