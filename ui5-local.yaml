@@ -33,7 +33,7 @@ server:
         backend:
           - authenticationType: reentranceTicket # SAML support for vscode
             path: /sap
-            url: https://my434383-api.s4hana.cloud.sap/
+            url: https://my438840-api.s4hana.cloud.sap/
     - name: sap-fe-mockserver
       beforeMiddleware: csp
       configuration:

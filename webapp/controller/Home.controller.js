@@ -22,6 +22,15 @@ sap.ui.define([
                     Working: 0,
                     Error: 0
                 },
+                pagination: {
+                    page: 1,
+                    pageSize: 50,
+                    skip: 0,
+                    hasPrevious: false,
+                    hasNext: false,
+                    total: 0,
+                    label: "Pagina 1"
+                },
                 messageStrip: {
                     visible: false
                 }
@@ -93,73 +102,264 @@ sap.ui.define([
             const sFlussoParam = sFlowKey === "fi" ? "F" : "S";
             return `/zeim_att_getlist(FLUSSO='${sFlussoParam}')/Set`;
         },
+        _getCurrentFilters: function () {
+            const filters = [];
 
-        _bindTableByFlow: function (sFlowKey, bReset = true) {
+            const clientiInput = this.byId("multiInput");
+            if (clientiInput) {
+                const clienti = clientiInput.getTokens().map(t => t.getKey() || t.getText());
+                if (clienti.length) {
+                    filters.push(new sap.ui.model.Filter({
+                        filters: clienti.map(v => new sap.ui.model.Filter("kunnr", "EQ", v)),
+                        and: false
+                    }));
+                }
+            }
+
+            const paeseInput = this.byId("multiInputPaeseEsecutore");
+            if (paeseInput) {
+                const paesi = paeseInput.getTokens().map(t => t.getKey() || t.getText());
+                if (paesi.length) {
+                    filters.push(new sap.ui.model.Filter({
+                        filters: paesi.map(v => new sap.ui.model.Filter("land1", "EQ", v)),
+                        and: false
+                    }));
+                }
+            }
+
+            const orgSelect = this.byId("selectOrgCommerciale");
+            if (orgSelect?.getSelectedKey()) {
+                filters.push(new sap.ui.model.Filter("vkorg", "EQ", orgSelect.getSelectedKey()));
+            }
+
+            const socSelect = this.byId("selectSocieta");
+            if (socSelect?.getSelectedKey()) {
+                filters.push(new sap.ui.model.Filter("bukrs", "EQ", socSelect.getSelectedKey()));
+            }
+
+            const inputDocumento = this.byId("inputDocumento");
+            if (inputDocumento) {
+                const docValue = inputDocumento.getValue()?.trim();
+                if (docValue) {
+                    filters.push(new sap.ui.model.Filter("belnr", "Contains", docValue));
+                }
+            }
+
+            const inputDocFattura = this.byId("inputDocFattura");
+            if (inputDocFattura) {
+                const docFatturaValue = inputDocFattura.getValue()?.trim();
+                if (docFatturaValue) {
+                    filters.push(new sap.ui.model.Filter("vbeln", "Contains", docFatturaValue));
+                }
+            }
+
+            const flow = this.getView().getModel("viewModel").getProperty("/currentFlow");
+
+            if (!this._isReverseCharge()) {
+                if (flow === "sd") {
+                    const tipoSD = this.byId("multiInputTipoFatturaSD");
+                    if (tipoSD) {
+                        const tokens = tipoSD.getTokens().map(t => t.getKey() || t.getText());
+                        if (tokens.length) {
+                            filters.push(new sap.ui.model.Filter({
+                                filters: tokens.map(v => new sap.ui.model.Filter("fkart", "EQ", v)),
+                                and: false
+                            }));
+                        }
+                    }
+                } else if (flow === "fi") {
+                    const tipoFI = this.byId("multiInputTipoFatturaFI");
+                    if (tipoFI) {
+                        const tokens = tipoFI.getTokens().map(t => t.getKey() || t.getText());
+                        if (tokens.length) {
+                            filters.push(new sap.ui.model.Filter({
+                                filters: tokens.map(v => new sap.ui.model.Filter("blart", "EQ", v)),
+                                and: false
+                            }));
+                        }
+                    }
+                }
+            }
+
+            const dateRange = this.byId("dateRangePicker");
+            if (dateRange) {
+                const from = dateRange.getDateValue();
+                const to = dateRange.getSecondDateValue();
+
+                if (from && to) {
+                    const sStart = from.toISOString().split("T")[0];
+                    const sEnd = to.toISOString().split("T")[0];
+                    filters.push(new sap.ui.model.Filter("budat", "BT", sStart, sEnd));
+                } else if (from) {
+                    const sExact = from.toISOString().split("T")[0];
+                    filters.push(new sap.ui.model.Filter("budat", "EQ", sExact));
+                }
+            }
+
+            return filters;
+        },
+
+        _loadFatturePage: function (iSkip) {
             const oModel = this.getOwnerComponent().getModel("mainService");
             const oFattureModel = this.getView().getModel("fattureModel");
+            const oViewModel = this.getView().getModel("viewModel");
 
-            if (bReset) {
-                this._pagination = {
-                    flow: sFlowKey,
-                    top: 200,
-                    skip: 0,
-                    hasMore: true,
-                    isLoading: false
-                };
-
-                oFattureModel.setData({ results: [] });
-                this._clearTableSelection();
-                this._updateInvioIntermediarioButton();
-            }
-
-            if (!this._pagination.hasMore || this._pagination.isLoading) return;
-
+            const sFlowKey = oViewModel.getProperty("/currentFlow");
             const sPath = this._getListPath(sFlowKey);
+            const iPageSize = oViewModel.getProperty("/pagination/pageSize") || 50;
 
-            this._pagination.isLoading = true;
             sap.ui.core.BusyIndicator.show(0);
 
-            const oDateRange = this.byId("dateRangePicker");
-            let aDefaultFilters = [];
-
-            if (oDateRange && oDateRange.getDateValue() && oDateRange.getSecondDateValue()) {
-                const sFrom = oDateRange.getDateValue().toISOString().split("T")[0];
-                const sTo = oDateRange.getSecondDateValue().toISOString().split("T")[0];
-                aDefaultFilters.push(new sap.ui.model.Filter("budat", "BT", sFrom, sTo));
-            }
+            this._clearTableSelection();
+            this._updateInvioIntermediarioButton();
 
             oModel.read(sPath, {
-                filters: aDefaultFilters,
+                filters: this._getCurrentFilters(),
                 urlParameters: {
-                    "$top": this._pagination.top,
-                    "$skip": this._pagination.skip
+                    "$top": iPageSize + 1,
+                    "$skip": iSkip
                 },
-                success: (oData) => {
-                    const aNew = oData.results || [];
-                    const aOld = oFattureModel.getProperty("/results") || [];
-                    const aMerged = aOld.concat(aNew);
+                success: function (oData) {
+                    const aBackendResults = oData.results || [];
 
-                    oFattureModel.setProperty("/results", aMerged);
+                    const bHasNext = aBackendResults.length > iPageSize;
+                    const aResults = aBackendResults.slice(0, iPageSize);
+
+                    const iPage = Math.floor(iSkip / iPageSize) + 1;
+
+                    console.log(
+                        "[PAGINAZIONE]",
+                        "skip:", iSkip,
+                        "top:", iPageSize + 1,
+                        "ricevute:", aBackendResults.length,
+                        "mostrate:", aResults.length,
+                        "hasNext:", bHasNext
+                    );
+
+                    oFattureModel.setData({
+                        results: aResults
+                    });
+
+                    oViewModel.setProperty("/pagination/page", iPage);
+                    oViewModel.setProperty("/pagination/skip", iSkip);
+                    oViewModel.setProperty("/pagination/hasPrevious", iSkip > 0);
+                    oViewModel.setProperty("/pagination/hasNext", bHasNext);
+                    oViewModel.setProperty("/pagination/label", "Pagina " + iPage + " - " + aResults.length + " fatture");
+
                     this._updateCounts();
 
-                    this._pagination.skip += aNew.length;
-                    this._pagination.hasMore = aNew.length === this._pagination.top;
-                    this._pagination.isLoading = false;
-
                     sap.ui.core.BusyIndicator.hide();
+                }.bind(this),
 
-                    if (this._pagination.hasMore) {
-                        setTimeout(() => this._bindTableByFlow(sFlowKey, false), 50);
-                    }
-                },
-                error: (err) => {
-                    console.error("Errore nel caricamento dati:", err);
+                error: function (err) {
+                    console.error("Errore caricamento pagina fatture:", err);
                     sap.ui.core.BusyIndicator.hide();
-                    this._pagination.isLoading = false;
-                    this._pagination.hasMore = false;
+                    sap.m.MessageBox.error("Errore durante il caricamento delle fatture.");
                 }
             });
         },
+
+        _bindTableByFlow: function (sFlowKey, bReset = true) {
+            const oViewModel = this.getView().getModel("viewModel");
+
+            if (bReset) {
+                oViewModel.setProperty("/currentFlow", sFlowKey);
+                oViewModel.setProperty("/pagination/page", 1);
+                oViewModel.setProperty("/pagination/skip", 0);
+                oViewModel.setProperty("/pagination/hasPrevious", false);
+                oViewModel.setProperty("/pagination/hasNext", false);
+                oViewModel.setProperty("/pagination/label", "Pagina 1");
+
+                this.getView().getModel("fattureModel").setData({ results: [] });
+                this._clearTableSelection();
+                this._updateCounts();
+                this._updateInvioIntermediarioButton();
+            }
+
+            this._loadFatturePage(0);
+        },
+
+        onNextPage: function () {
+            const oViewModel = this.getView().getModel("viewModel");
+            const iSkip = oViewModel.getProperty("/pagination/skip") || 0;
+            const iPageSize = oViewModel.getProperty("/pagination/pageSize") || 50;
+
+            this._loadFatturePage(iSkip + iPageSize);
+        },
+
+        onPreviousPage: function () {
+            const oViewModel = this.getView().getModel("viewModel");
+            const iSkip = oViewModel.getProperty("/pagination/skip") || 0;
+            const iPageSize = oViewModel.getProperty("/pagination/pageSize") || 50;
+
+            this._loadFatturePage(Math.max(0, iSkip - iPageSize));
+        },
+        // _bindTableByFlow: function (sFlowKey, bReset = true) {
+        //     const oModel = this.getOwnerComponent().getModel("mainService");
+        //     const oFattureModel = this.getView().getModel("fattureModel");
+
+        //     if (bReset) {
+        //         this._pagination = {
+        //             flow: sFlowKey,
+        //             top: 200,
+        //             skip: 0,
+        //             hasMore: true,
+        //             isLoading: false
+        //         };
+
+        //         oFattureModel.setData({ results: [] });
+        //         this._clearTableSelection();
+        //         this._updateInvioIntermediarioButton();
+        //     }
+
+        //     if (!this._pagination.hasMore || this._pagination.isLoading) return;
+
+        //     const sPath = this._getListPath(sFlowKey);
+
+        //     this._pagination.isLoading = true;
+        //     sap.ui.core.BusyIndicator.show(0);
+
+        //     const oDateRange = this.byId("dateRangePicker");
+        //     let aDefaultFilters = [];
+
+        //     if (oDateRange && oDateRange.getDateValue() && oDateRange.getSecondDateValue()) {
+        //         const sFrom = oDateRange.getDateValue().toISOString().split("T")[0];
+        //         const sTo = oDateRange.getSecondDateValue().toISOString().split("T")[0];
+        //         aDefaultFilters.push(new sap.ui.model.Filter("budat", "BT", sFrom, sTo));
+        //     }
+
+        //     oModel.read(sPath, {
+        //         filters: aDefaultFilters,
+        //         urlParameters: {
+        //             "$top": this._pagination.top,
+        //             "$skip": this._pagination.skip
+        //         },
+        //         success: (oData) => {
+        //             const aNew = oData.results || [];
+        //             const aOld = oFattureModel.getProperty("/results") || [];
+        //             const aMerged = aOld.concat(aNew);
+
+        //             oFattureModel.setProperty("/results", aMerged);
+        //             this._updateCounts();
+
+        //             this._pagination.skip += aNew.length;
+        //             this._pagination.hasMore = aNew.length === this._pagination.top;
+        //             this._pagination.isLoading = false;
+
+        //             sap.ui.core.BusyIndicator.hide();
+
+        //             if (this._pagination.hasMore) {
+        //                 setTimeout(() => this._bindTableByFlow(sFlowKey, false), 50);
+        //             }
+        //         },
+        //         error: (err) => {
+        //             console.error("Errore nel caricamento dati:", err);
+        //             sap.ui.core.BusyIndicator.hide();
+        //             this._pagination.isLoading = false;
+        //             this._pagination.hasMore = false;
+        //         }
+        //     });
+        // },
 
         _updateCounts: function () {
             const oFattureModel = this.getView().getModel("fattureModel");
@@ -778,146 +978,12 @@ sap.ui.define([
         },
 
         onFilterBarSearch: function () {
-            const mainService = this.getOwnerComponent().getModel("mainService");
-            const viewModel = this.getView().getModel("viewModel");
-            const fattureModel = this.getView().getModel("fattureModel");
-
-            sap.ui.core.BusyIndicator.show(0);
-
-            const filters = [];
-
-            const clientiInput = this.byId("multiInput");
-            if (clientiInput) {
-                const clienti = clientiInput.getTokens().map(t => t.getKey() || t.getText());
-                if (clienti.length) {
-                    filters.push(new sap.ui.model.Filter({
-                        filters: clienti.map(v => new sap.ui.model.Filter("kunnr", "EQ", v)),
-                        and: false
-                    }));
-                }
-            }
-
-            const paeseInput = this.byId("multiInputPaeseEsecutore");
-            if (paeseInput) {
-                const paesi = paeseInput.getTokens().map(t => t.getKey() || t.getText());
-                if (paesi.length) {
-                    filters.push(new sap.ui.model.Filter({
-                        filters: paesi.map(v => new sap.ui.model.Filter("land1", "EQ", v)),
-                        and: false
-                    }));
-                }
-            }
-
-            const orgSelect = this.byId("selectOrgCommerciale");
-            if (orgSelect?.getSelectedKey()) {
-                filters.push(new sap.ui.model.Filter("vkorg", "EQ", orgSelect.getSelectedKey()));
-            }
-
-            const socSelect = this.byId("selectSocieta");
-            if (socSelect?.getSelectedKey()) {
-                filters.push(new sap.ui.model.Filter("bukrs", "EQ", socSelect.getSelectedKey()));
-            }
-
-            const inputDocumento = this.byId("inputDocumento");
-            if (inputDocumento) {
-                const docValue = inputDocumento.getValue()?.trim();
-                if (docValue) {
-                    filters.push(new sap.ui.model.Filter("belnr", "Contains", docValue));
-                }
-            }
-
-            const inputDocFattura = this.byId("inputDocFattura");
-            if (inputDocFattura) {
-                const docFatturaValue = inputDocFattura.getValue()?.trim();
-                if (docFatturaValue) {
-                    filters.push(new sap.ui.model.Filter("vbeln", "Contains", docFatturaValue));
-                }
-            }
-
-            const flow = viewModel.getProperty("/currentFlow");
-
-            if (!this._isReverseCharge()) {
-                if (flow === "sd") {
-                    const tipoSD = this.byId("multiInputTipoFatturaSD");
-                    if (tipoSD) {
-                        const tokens = tipoSD.getTokens().map(t => t.getKey() || t.getText());
-                        if (tokens.length) {
-                            filters.push(new sap.ui.model.Filter({
-                                filters: tokens.map(v => new sap.ui.model.Filter("fkart", "EQ", v)),
-                                and: false
-                            }));
-                        }
-                    }
-                } else if (flow === "fi") {
-                    const tipoFI = this.byId("multiInputTipoFatturaFI");
-                    if (tipoFI) {
-                        const tokens = tipoFI.getTokens().map(t => t.getKey() || t.getText());
-                        if (tokens.length) {
-                            filters.push(new sap.ui.model.Filter({
-                                filters: tokens.map(v => new sap.ui.model.Filter("blart", "EQ", v)),
-                                and: false
-                            }));
-                        }
-                    }
-                }
-            }
-
-            const dateRange = this.byId("dateRangePicker");
-            if (dateRange) {
-                const from = dateRange.getDateValue();
-                const to = dateRange.getSecondDateValue();
-
-                if (from && to) {
-                    const sStart = from.toISOString().split("T")[0];
-                    const sEnd = to.toISOString().split("T")[0];
-                    filters.push(new sap.ui.model.Filter("budat", "BT", sStart, sEnd));
-                } else if (from) {
-                    const sExact = from.toISOString().split("T")[0];
-                    filters.push(new sap.ui.model.Filter("budat", "EQ", sExact));
-                }
-            }
-
-            const sPath = this._getListPath(flow);
-
-            const PAGE_SIZE = 50;
-            let skip = 0;
-            let allResults = [];
-
-            this._clearTableSelection();
-            this._updateInvioIntermediarioButton();
-
-            const loadPage = () => {
-                mainService.read(sPath, {
-                    filters: filters,
-                    urlParameters: {
-                        "$top": PAGE_SIZE,
-                        "$skip": skip
-                    },
-                    success: (oData) => {
-                        const results = oData.results || [];
-                        allResults = allResults.concat(results);
-
-                        if (results.length === PAGE_SIZE) {
-                            skip += PAGE_SIZE;
-                            loadPage();
-                        } else {
-                            fattureModel.setData({ results: allResults });
-                            this._updateCounts();
-                            sap.ui.core.BusyIndicator.hide();
-                        }
-                    },
-                    error: (err) => {
-                        console.error("Errore durante la lettura filtrata:", err);
-                        sap.ui.core.BusyIndicator.hide();
-                    }
-                });
-            };
-
-            loadPage();
+            this._loadFatturePage(0);
         },
 
         onFilterBarClear: function () {
             const oFilterBar = this.byId("filterBar");
+
             if (oFilterBar) {
                 oFilterBar.getFilterGroupItems().forEach(item => {
                     const ctrl = item.getControl();
@@ -933,10 +999,11 @@ sap.ui.define([
                 });
             }
 
-            this.getView().getModel("fattureModel").setData({ results: [] });
             this._clearTableSelection();
             this._updateCounts();
             this._updateInvioIntermediarioButton();
+
+            this._loadFatturePage(0);
         },
 
         onInvioData: function () {

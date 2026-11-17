@@ -5,6 +5,7 @@
     xmlns:core="sap.ui.core"
     xmlns:f="sap.f"
     xmlns:t="sap.ui.table"
+    xmlns:rowm="sap.ui.table.rowmodes"
     xmlns:card="sap.f.cards"
     xmlns:form="sap.ui.layout.form"
     xmlns:fb="sap.ui.comp.filterbar"
@@ -301,13 +302,14 @@
             rows="{fattureModel>/results}"
             selectionMode="MultiToggle"
             selectionBehavior="RowSelector"
-            visibleRowCountMode="Auto"
-            minAutoRowCount="10"
             enableColumnReordering="true"
             enableCellFilter="true"
             rowSelectionChange=".onSelectionChange"
             class="sapUiSmallMarginTop"
         >
+            <t:rowMode>
+                <rowm:Fixed rowCount="15" />
+            </t:rowMode>
             <t:extension>
                 <OverflowToolbar>
                     <Title text="Cruscotto fatture" />
@@ -319,6 +321,23 @@
                         save=".onVariantSave"
                         select=".onVariantSelect"
                         manage=".onVariantManage"
+                    />
+                    <ToolbarSeparator />
+
+                    <Button
+                        icon="sap-icon://navigation-left-arrow"
+                        text="Precedente"
+                        enabled="{viewModel>/pagination/hasPrevious}"
+                        press=".onPreviousPage"
+                    />
+
+                    <Text text="{viewModel>/pagination/label}" />
+
+                    <Button
+                        icon="sap-icon://navigation-right-arrow"
+                        text="Successiva"
+                        enabled="{viewModel>/pagination/hasNext}"
+                        press=".onNextPage"
                     />
                     <ToolbarSpacer />
                     <Button
